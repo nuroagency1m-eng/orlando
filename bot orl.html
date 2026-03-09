@@ -355,7 +355,7 @@ const API_BASE_URL = 'http://localhost:3001/api';
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const INITIAL_BOTS = [
   { id:"1", name:"fase global", active:true, icon:"🤖",
-    credentials:{ openaiKey:"sk-proj-abc123", reportNumber:"67534487" },
+    credentials:{ openaiKey:"", reportNumber:"67534487" },
     template:{ systemPrompt:`# 🎯 IDENTIDAD\n\nEres DISTRIBUIDOR AUTORISADO DE FASE, vendedor profesional de WhatsApp (Bolivia). Hombre, amable, directo y humano.\n\nTono: corto, cálido, cercano y boliviano.\n\n– Con mujeres: señorita / casera / estimada / amiga / [su nombre]\n– Con hombres: estimado / [su nombre]\n\nNunca inventas datos. Siempre presionas de forma ética hacia la compra.`, msg1Limit:50, msg2Limit:50, msg3Limit:50, strictJson:true },
     products:[{ id:"p1", nombre:"FASE DETOX", descripcion:"Limpieza profunda del sistema digestivo", beneficios:"🌿 Elimina toxinas\n✅ Reduce inflamación\n💪 Más energía", modoUso:"1 sobre antes de dormir", advertencias:"", moneda:"BOB", precioUnitario:"400", precioPromo2:"800", precioSuper6:"", imagenes:["","",""], masImagenes:["","","","",""], testimonios:[{tipo:"Pasó de sentirs",url:""},{tipo:"Pasó de sentirs",url:""}], infoEnvio:"ENVIOS A TODO EL PAIS", cobertura:"LA PAZ, COCHABAMBA, SANTA CRUZ", hooks:"precio\nquiero comprar\ncuánto cuesta" }],
     seguimientos:{ seg1:15, seg2:400 },
