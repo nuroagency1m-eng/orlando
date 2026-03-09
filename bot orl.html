@@ -306,6 +306,96 @@ select.inp { cursor:pointer; appearance:none; }
 }
 .wa-qr-container img { border-radius:12px; }
 .wa-btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  body::before { width:300px; height:300px; top:-60px; right:-60px; }
+  body::after  { width:250px; height:250px; bottom:-40px; left:-40px; }
+
+  .sec-card { padding:18px; border-radius:16px; margin-bottom:12px; }
+  .navy { border-radius:18px; }
+
+  .tab-btn { padding:8px 12px; font-size:12px; gap:5px; }
+  .btn-cyan, .btn-navy, .btn-success, .btn-ghost {
+    padding:12px 18px; font-size:13px; border-radius:12px; min-height:46px;
+  }
+  .inp { padding:12px 14px; font-size:14px; border-radius:12px; -webkit-appearance:none; }
+  .ta { min-height:100px; }
+  .lbl { font-size:10px; }
+
+  .wa-qr-container { width:200px; height:200px; border-radius:16px; }
+  .wa-btn-row { gap:8px; }
+  .wa-status-bar { padding:8px 12px; font-size:12px; }
+
+  .toast { bottom:16px; right:12px; left:12px; padding:12px 16px; font-size:13px;
+    border-radius:12px; justify-content:center; text-align:center; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (Android / iPhone)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media(max-width:480px){
+  body { background:linear-gradient(145deg, #d6eaf8 0%, #c2d9f0 100%); }
+  body::before, body::after { display:none; }
+
+  .sec-card { padding:14px; border-radius:14px; margin-bottom:10px; }
+  .navy { border-radius:14px; }
+
+  .tab-btn { padding:8px 10px; font-size:11px; gap:4px; }
+  .btn-cyan, .btn-navy, .btn-success, .btn-ghost {
+    padding:13px 16px; font-size:14px; border-radius:12px; min-height:48px;
+    width:100%; justify-content:center;
+  }
+  .inp { padding:13px 14px; font-size:15px; border-radius:12px; -webkit-appearance:none; }
+  .lbl { font-size:10px; margin-bottom:6px; }
+
+  .wa-qr-container { width:180px; height:180px; border-radius:14px; }
+  .wa-btn-row { flex-direction:column; gap:8px; align-items:stretch; }
+  .wa-btn-row .btn-cyan, .wa-btn-row .btn-navy, .wa-btn-row .btn-ghost {
+    width:100%; justify-content:center;
+  }
+
+  .badge { font-size:10px; padding:3px 10px; }
+
+  /* Bot list header: stack on mobile */
+  .bot-list-header { flex-direction:column !important; gap:14px !important; text-align:center; }
+  .bot-list-header .btn-cyan { width:100%; justify-content:center; }
+
+  /* Stats grid: single column on small mobile */
+  .stats-mini { grid-template-columns:1fr !important; }
+
+  /* Bot card: adjust for mobile */
+  .bot-card-item { padding:16px !important; gap:12px !important; }
+
+  /* Session info grid */
+  .session-grid { grid-template-columns:1fr !important; }
+
+  /* Seguimiento inputs flex → column */
+  .seg-inputs { flex-direction:column !important; }
+
+  /* Product grid 3-col → 1-col */
+  .price-grid, .limit-grid { grid-template-columns:1fr !important; }
+
+  /* Testimony grid: stack on mobile */
+  .testimony-row { grid-template-columns:1fr !important; gap:6px !important; }
+
+  /* Tab bar: scrollable, hide long labels */
+  .tab-bar { -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .tab-bar::-webkit-scrollbar { display:none; }
+
+  /* Detail header: wrap */
+  .detail-top-bar { flex-wrap:wrap !important; gap:10px !important; }
+  .detail-top-bar .glass { order:3; width:100%; justify-content:center; }
+
+  /* Bot header navy card */
+  .bot-header-card { padding:18px !important; }
+  .bot-header-card .status-wrap { margin-top:8px; align-self:flex-start; }
+
+  /* Toast on mobile */
+  .toast { bottom:12px; }
+}
 </style>
 </head>
 <body>
@@ -511,7 +601,7 @@ const TabPlantilla = ({bot, onUpdate}) => {
 
       <div className="sec-card">
         <label className="lbl">Límite de caracteres por mensaje</label>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+        <div className="limit-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
           {[["msg1Limit","Mensaje 1"],["msg2Limit","Mensaje 2"],["msg3Limit","Mensaje 3"]].map(([k,l])=>(
             <div key={k}>
               <label className="lbl" style={{fontSize:10}}>{l}</label>
@@ -588,7 +678,7 @@ const ProductForm = ({product, onSave, onCancel}) => {
             {CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+        <div className="price-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
           {[["precioUnitario","Precio unitario"],["precioPromo2","Promo ×2"],["precioSuper6","Súper ×6"]].map(([k,l])=>(
             <div key={k}>
               <label className="lbl" style={{fontSize:10}}>{l}</label>
@@ -618,13 +708,13 @@ const ProductForm = ({product, onSave, onCancel}) => {
       {/* Testimonios */}
       <div className="sec-card">
         <SecHeader icon={IcStar} label="Fotos de testimonios" color="#f472b6"/>
-        <div style={{display:"grid",gridTemplateColumns:"130px auto 36px",gap:8,marginBottom:8}}>
+        <div className="testimony-row" style={{display:"grid",gridTemplateColumns:"130px auto 36px",gap:8,marginBottom:8}}>
           <span className="lbl" style={{marginBottom:0,alignSelf:"center"}}>Tipo</span>
           <span className="lbl" style={{marginBottom:0,alignSelf:"center"}}>URL de la foto</span>
           <span/>
         </div>
         {p.testimonios.map((t,i)=>(
-          <div key={i} style={{display:"grid",gridTemplateColumns:"130px auto 36px",gap:8,marginBottom:8}}>
+          <div key={i} className="testimony-row" style={{display:"grid",gridTemplateColumns:"130px auto 36px",gap:8,marginBottom:8}}>
             <input className="inp" value={t.tipo} onChange={e=>{const a=[...p.testimonios];a[i]={...t,tipo:e.target.value};setP(x=>({...x,testimonios:a}))}} style={{fontSize:12,padding:"10px"}}/>
             <input className="inp" value={t.url} onChange={e=>{const a=[...p.testimonios];a[i]={...t,url:e.target.value};setP(x=>({...x,testimonios:a}))}} placeholder="https://..." style={{fontSize:12}}/>
             <button onClick={()=>removeTestimony(i)} style={{width:36,height:40,borderRadius:10,background:"rgba(255,107,138,0.1)",border:"1.5px solid rgba(255,107,138,0.2)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -756,7 +846,7 @@ const TabSeguimientos = ({bot, onUpdate}) => {
             <p style={{color:"rgba(255,255,255,0.55)",fontSize:13}}>Define los intervalos para re-interactuar con clientes.</p>
           </div>
         </div>
-        <div style={{display:"flex",gap:16,position:"relative",zIndex:1}}>
+        <div className="seg-inputs" style={{display:"flex",gap:16,position:"relative",zIndex:1}}>
           {[["seg1","1ER SEGUIMIENTO","Por defecto: 15 min."],["seg2","2DO SEGUIMIENTO","Por defecto: 4320 min (3 días)."]].map(([k,label,hint])=>(
             <div key={k} style={{flex:1}}>
               <label style={{display:"block",color:"rgba(255,255,255,0.5)",fontSize:10,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:10}}>{label}</label>
@@ -1099,7 +1189,7 @@ const TabQR = ({bot, onUpdate}) => {
       {/* ── Session info card ── */}
       <div className="sec-card" style={{padding:"18px 22px",marginBottom:12}}>
         <SecHeader icon={IcShield} label="Informacion de sesion" color="#3eb8f0"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div className="session-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           <div>
             <div style={{color:"#9ab0c8",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4}}>Estado</div>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1246,7 +1336,7 @@ const BotDetail = ({bot, onBack, onUpdate}) => {
     <div style={{minHeight:"100vh",position:"relative",zIndex:1}}>
       <div style={{maxWidth:720,margin:"0 auto",padding:"28px 20px"}}>
         {/* App brand bar */}
-        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:28}}>
+        <div className="detail-top-bar" style={{display:"flex",alignItems:"center",gap:14,marginBottom:28}}>
           <button onClick={onBack} style={{background:"rgba(255,255,255,0.3)",border:"1.5px solid rgba(255,255,255,0.5)",borderRadius:12,padding:"8px 14px",cursor:"pointer",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",gap:6,color:"#0b1d3a",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
             <IcArrow s={16} c="#0b1d3a"/> Volver
           </button>
@@ -1261,31 +1351,31 @@ const BotDetail = ({bot, onBack, onUpdate}) => {
         </div>
 
         {/* Bot header card — NAVY */}
-        <div className="navy navy-wave" style={{padding:"22px 24px",marginBottom:24,position:"relative"}}>
+        <div className="navy navy-wave bot-header-card" style={{padding:"22px 24px",marginBottom:24,position:"relative"}}>
           <CardDeco/>
-          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative",zIndex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative",zIndex:1,flexWrap:"wrap"}}>
             <div style={{width:48,height:48,borderRadius:14,background:"rgba(62,184,240,0.15)",border:"1.5px solid rgba(62,184,240,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>
               {bot.icon}
             </div>
-            <div style={{flex:1}}>
+            <div style={{flex:1,minWidth:0}}>
               {editName
                 ? <input autoFocus value={name} onChange={e=>setName(e.target.value)}
                     onBlur={()=>{setEditName(false);upd({name});}}
                     onKeyDown={e=>e.key==="Enter"&&setEditName(false)}
-                    style={{background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:10,padding:"6px 12px",color:"#fff",fontSize:16,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none"}}/>
+                    style={{background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:10,padding:"6px 12px",color:"#fff",fontSize:16,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
                 : <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{color:"#fff",fontSize:17,fontWeight:700}}>{name}</span>
+                    <span style={{color:"#fff",fontSize:17,fontWeight:700,wordBreak:"break-word"}}>{name}</span>
                     <button onClick={()=>setEditName(true)} style={{background:"none",border:"none",cursor:"pointer"}}><IcEdit s={13} c="rgba(255,255,255,0.4)"/></button>
                   </div>
               }
-              <p style={{color:"rgba(255,255,255,0.4)",fontSize:12,marginTop:2}}>ID: {bot.id}</p>
+              <p style={{color:"rgba(255,255,255,0.4)",fontSize:12,marginTop:2,wordBreak:"break-all"}}>ID: {bot.id}</p>
             </div>
-            <StatusDot active={bot.active}/>
+            <div className="status-wrap"><StatusDot active={bot.active}/></div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="glass" style={{padding:"4px 8px",marginBottom:20,display:"flex",gap:2,overflowX:"auto",borderRadius:18}}>
+        <div className="glass tab-bar" style={{padding:"4px 8px",marginBottom:20,display:"flex",gap:2,overflowX:"auto",borderRadius:18}}>
           {TABS.map(t=>(
             <button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
               <t.Icon s={14} c={tab===t.id?"#1a9de0":"#6b8ab0"}/> {t.label}
@@ -1313,12 +1403,12 @@ const BotsList = ({bots, onSelect, onNew, onDelete}) => (
       {/* Header */}
       <div className="navy navy-wave" style={{padding:"28px 32px",marginBottom:28,position:"relative",borderRadius:28}}>
         <CardDeco/>
-        <div style={{display:"flex",alignItems:"center",gap:16,position:"relative",zIndex:1}}>
-          <div style={{width:56,height:56,borderRadius:18,background:"linear-gradient(135deg,#3eb8f0,#1a9de0)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 32px rgba(62,184,240,0.5)"}}>
+        <div className="bot-list-header" style={{display:"flex",alignItems:"center",gap:16,position:"relative",zIndex:1}}>
+          <div style={{width:56,height:56,borderRadius:18,background:"linear-gradient(135deg,#3eb8f0,#1a9de0)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 32px rgba(62,184,240,0.5)",flexShrink:0}}>
             <IcMsg s={28} c="#fff"/>
           </div>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
               <span style={{color:"#fff",fontSize:22,fontWeight:800,letterSpacing:"-0.02em"}}>WhatsApp Bots</span>
               <span style={{background:"rgba(62,184,240,0.2)",color:"#5dd0ff",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:8,padding:"2px 10px",fontSize:11,fontWeight:800,letterSpacing:"0.08em"}}>MULTI-TENANT</span>
             </div>
@@ -1331,7 +1421,7 @@ const BotsList = ({bots, onSelect, onNew, onDelete}) => (
       </div>
 
       {/* Stats */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>
+      <div className="stats-mini" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>
         {[
           {label:"Bots activos", value:bots.filter(b=>b.active).length, color:"#3eb8f0"},
           {label:"Productos", value:bots.reduce((a,b)=>a+b.products.length,0), color:"#22d3a0"},
@@ -1349,7 +1439,7 @@ const BotsList = ({bots, onSelect, onNew, onDelete}) => (
         {bots.map((bot,i)=>(
           <div key={bot.id}
             onClick={()=>onSelect(bot)}
-            className="glass"
+            className="glass bot-card-item"
             style={{padding:"20px 24px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:18,animation:`cardIn 0.35s ease ${i*0.06}s both`,borderRadius:20}}
             onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 12px 40px rgba(11,29,58,0.18), 0 2px 8px rgba(255,255,255,0.3) inset";}}
             onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="";}}
