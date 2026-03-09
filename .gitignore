@@ -8,6 +8,7 @@ uploads/
 *.db
 *.db-wal
 *.db-shm
+bot_configs/
 server.log
 .DS_Store
 .claude/
