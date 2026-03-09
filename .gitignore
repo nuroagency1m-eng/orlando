@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+.jwt_secret
+wa_sessions/
+msg_stores/
+uploads/
+*.db
+*.db-wal
+*.db-shm
+server.log
+.DS_Store
+.claude/

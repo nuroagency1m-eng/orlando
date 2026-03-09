@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MI AGENTE — Panel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+:root{--sidebar-w:260px;--header-h:64px;--bg:#0B0F19;--bg-sidebar:#0F172A;--bg-card:#111827;
+  --cyan:#06B6D4;--cyan-dark:#0891B2;--navy:#0F172A;--navy-mid:#1E293B;
+  --gold:#D4AF37;--gold-light:#F5D97E;--gold-dark:#B8962E;
+  --text:#F9FAFB;--text-secondary:#9CA3AF;--text-light:#6B7280;
+  --success:#22c55e;--danger:#ef4444;--warn:#f59e0b;--purple:#8b5cf6;
+  --border:rgba(55,65,81,0.5);--shadow:0 2px 8px rgba(0,0,0,0.3);
+  --radius:12px;--radius-lg:16px;
+  --cyan-glow:rgba(6,182,212,0.25)}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{height:100%}
+body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.95)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes qrPulse{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,0.4)}50%{box-shadow:0 0 0 12px rgba(212,175,55,0)}}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:0.3}}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--bg-sidebar);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform 0.3s;
+  border-right:1px solid rgba(55,65,81,0.4)}
+.sidebar-brand{padding:20px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(55,65,81,0.4)}
+.sidebar-brand-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold-light));
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(212,175,55,0.3)}
+.sidebar-brand-text{color:#F9FAFB;font-size:16px;font-weight:700;letter-spacing:-0.02em}
+.sidebar-brand-sub{color:rgba(156,163,175,0.5);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em}
+
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.sidebar-section{color:rgba(156,163,175,0.4);font-size:10px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;padding:16px 12px 8px;margin-top:4px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  color:rgba(156,163,175,0.7);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;
+  margin-bottom:2px;border:none;background:none;width:100%;text-align:left;
+  font-family:'Sequel',system-ui,sans-serif}
+.sidebar-item:hover{background:rgba(30,41,59,0.8);color:#F9FAFB}
+.sidebar-item.active{background:rgba(79,70,229,0.15);color:#818CF8;border:1px solid rgba(79,70,229,0.2)}
+.sidebar-item .count{margin-left:auto;background:rgba(212,175,55,0.12);color:var(--gold);
+  padding:1px 8px;border-radius:6px;font-size:11px;font-weight:600}
+.sidebar-item.active .count{background:rgba(79,70,229,0.2);color:#818CF8}
+
+.sidebar-footer{padding:16px;border-top:1px solid rgba(55,65,81,0.4)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition:all 0.2s}
+.sidebar-user:hover{background:rgba(30,41,59,0.8)}
+.sidebar-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  display:flex;align-items:center;justify-content:center;color:#0B0F19;font-size:14px;font-weight:700;
+  overflow:hidden}
+.sidebar-avatar img{width:100%;height:100%;object-fit:cover}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user-name{color:#F9FAFB;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-role{color:rgba(156,163,175,0.5);font-size:11px}
+
+/* MAIN */
+.main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{height:var(--header-h);background:rgba(17,24,39,0.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:40}
+.header-title{font-size:18px;font-weight:700;color:var(--text)}
+.header-sub{font-size:13px;color:var(--text-secondary)}
+.header-spacer{flex:1}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:8px;color:var(--text)}
+
+/* CONTENT */
+.content{flex:1;padding:24px 28px;max-width:1000px;width:100%}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-body{padding:20px}
+
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px;box-shadow:var(--shadow);transition:border-color 0.2s}
+.stat-card:hover{border-color:rgba(212,175,55,0.3)}
+.stat-value{font-size:28px;font-weight:700;font-family:system-ui,monospace;line-height:1;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:6px}
+.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;margin-bottom:12px}
+
+/* FORM ELEMENTS */
+.inp{width:100%;box-sizing:border-box;background:#1F2937;border:1.5px solid #374151;
+  border-radius:var(--radius);padding:11px 16px;color:var(--text);font-family:'Sequel',system-ui,monospace;
+  font-size:13px;font-weight:400;outline:none;transition:all 0.25s}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,0.12)}
+.inp::placeholder{color:var(--text-light)}
+.ta{resize:vertical;line-height:1.7;min-height:80px}
+select.inp{cursor:pointer;appearance:none}
+.lbl{display:block;color:var(--text-secondary);font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
+
+/* BUTTONS */
+.btn-cyan{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0B0F19;border:none;border-radius:var(--radius);
+  padding:11px 22px;font-family:'Sequel',system-ui,sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(212,175,55,0.3);transition:all 0.25s}
+.btn-cyan:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(212,175,55,0.4)}
+.btn-navy{background:rgba(15,23,42,0.8);color:#F9FAFB;
+  border:1.5px solid rgba(212,175,55,0.25);border-radius:var(--radius);padding:11px 22px;
+  font-family:'Sequel',system-ui,sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all 0.25s}
+.btn-navy:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(212,175,55,0.15)}
+.btn-success{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:var(--radius);
+  padding:11px 22px;font-family:'Sequel',system-ui,sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 4px 16px rgba(34,197,94,0.25);transition:all 0.25s}
+.btn-success:hover{transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:11px 22px;font-family:'Sequel',system-ui,sans-serif;
+  font-size:14px;font-weight:500;cursor:pointer;transition:all 0.25s}
+.btn-ghost:hover{background:rgba(30,41,59,0.5);border-color:rgba(156,163,175,0.3);color:var(--text)}
+
+/* SECTION CARD */
+.sec-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:24px;margin-bottom:16px;box-shadow:var(--shadow)}
+
+/* NAVY CARD */
+.navy{background:linear-gradient(145deg,#111827,#0F172A);border:1px solid rgba(212,175,55,0.15);
+  border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.4),0 1px 0 rgba(212,175,55,0.08) inset}
+.navy-wave{position:relative;overflow:hidden}
+.navy-wave::before{content:'';position:absolute;width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,175,55,0.06),transparent 70%);top:-80px;right:-60px;pointer-events:none}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.06em}
+
+/* TAB BUTTONS */
+.tab-btn{display:flex;align-items:center;gap:7px;padding:10px 18px;background:none;border:none;
+  border-bottom:2.5px solid transparent;font-family:'Sequel',system-ui,sans-serif;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;white-space:nowrap;
+  margin-bottom:-1.5px;color:var(--text-secondary)}
+.tab-btn.active{border-bottom-color:var(--gold);color:var(--text)}
+.tab-btn:hover{color:var(--text)}
+
+/* TOGGLE */
+.toggle-track{width:56px;height:30px;border-radius:15px;cursor:pointer;position:relative;transition:all 0.25s;flex-shrink:0}
+.toggle-thumb{position:absolute;top:3px;width:22px;height:22px;border-radius:50%;
+  background:#fff;transition:left 0.25s;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:9999;
+  background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0B0F19;padding:14px 24px;border-radius:var(--radius);
+  font-weight:700;font-size:14px;box-shadow:0 8px 32px rgba(212,175,55,0.35);
+  display:flex;align-items:center;gap:10px;animation:fadeSlideUp 0.3s ease}
+
+/* WHATSAPP */
+.wa-status-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;transition:all 0.3s}
+.wa-qr-container{width:240px;height:240px;margin:0 auto 20px;border-radius:20px;display:flex;
+  align-items:center;justify-content:center;transition:all 0.4s;position:relative;overflow:hidden}
+.wa-qr-container img{border-radius:12px}
+.wa-btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#111827;border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,0.5);animation:fadeSlideUp 0.3s ease}
+
+/* TABLE ROW */
+.table-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);
+  transition:background 0.15s;cursor:pointer}
+.table-row:last-child{border-bottom:none}
+.table-row:hover{background:rgba(212,175,55,0.03)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,175,55,0.25);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(212,175,55,0.4)}
+
+/* BOTTOM NAV (mobile) */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;
+  background:rgba(11,15,25,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(212,175,55,0.15);z-index:50;
+  padding:8px 0 env(safe-area-inset-bottom,8px)}
+.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center;max-width:500px;margin:0 auto}
+.bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 16px;border:none;background:none;cursor:pointer;
+  font-family:'Sequel',system-ui,sans-serif;font-size:10px;font-weight:600;
+  color:var(--text-light);transition:all 0.2s;border-radius:10px;min-width:60px}
+.bottom-nav-item.active{color:var(--gold);background:rgba(212,175,55,0.08)}
+
+/* SIDEBAR OVERLAY */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:45}
+
+/* GRID UTILITIES */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-2-dash{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .main{margin-left:0}
+  .hamburger{display:block}
+  .bottom-nav{display:block}
+  .content{padding:16px;padding-bottom:90px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .header{padding:0 16px}
+  .header-title{font-size:16px}
+  .header-sub{font-size:11px}
+
+  /* Section cards compact */
+  .sec-card{padding:18px;margin-bottom:12px}
+
+  /* Tab bar scrollable */
+  .tab-btn{padding:10px 14px;font-size:12px;white-space:nowrap}
+
+  /* Table rows → mobile cards */
+  .table-row{flex-direction:column;align-items:flex-start;gap:8px;
+    padding:14px;border-radius:12px;margin-bottom:8px;
+    background:rgba(15,23,42,0.4);border:1px solid var(--border)}
+
+  /* Buttons touch friendly */
+  .btn-cyan,.btn-navy,.btn-success,.btn-ghost{padding:12px 20px;font-size:14px;
+    min-height:46px;border-radius:12px}
+
+  /* Modal mobile full-width */
+  .modal{width:96%;max-height:92vh;padding:20px;border-radius:16px}
+  .modal-overlay{align-items:flex-end;padding-bottom:env(safe-area-inset-bottom,0)}
+
+  /* Form grids single column */
+  .grid-2{grid-template-columns:1fr}
+  .grid-2-dash{grid-template-columns:1fr}
+
+  /* Toast above bottom nav */
+  .toast{bottom:80px;right:12px;left:12px;text-align:center;justify-content:center}
+
+  /* Toggle bigger for touch */
+  .toggle-track{width:58px;height:32px;border-radius:16px}
+  .toggle-thumb{width:24px;height:24px;top:3px}
+
+  /* QR container */
+  .wa-qr-container{width:200px;height:200px;border-radius:16px}
+  .wa-btn-row{gap:8px}
+
+  /* Stat cards compact */
+  .stat-card{padding:14px}
+  .stat-value{font-size:22px}
+  .stat-label{font-size:11px}
+  .stat-icon{width:34px;height:34px;margin-bottom:8px}
+
+  /* Inputs bigger for touch */
+  .inp{padding:12px 14px;font-size:14px;border-radius:12px;-webkit-appearance:none}
+  .ta{min-height:100px}
+  .lbl{font-size:11px}
+}
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr}
+  .content{padding:12px;padding-bottom:90px}
+  .header{height:56px}
+  .header-title{font-size:15px}
+  .sec-card{padding:14px;margin-bottom:10px}
+
+  /* Price/limit grids single column */
+  .grid-3{grid-template-columns:1fr}
+  .grid-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// ─── CONFIG ──
+const API = window.location.origin + '/api';
+const WA_API = window.location.origin + '/api/wa/sessions';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/login';
+
+const authFetch = async (url, opts = {}) => {
+  opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+  const res = await fetch(url, opts);
+  if (res.status === 401) { localStorage.clear(); window.location.href = '/login'; }
+  return res;
+};
+
+const MODELS = [
+  { id: 'gpt-4', label: 'GPT-4' },
+  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+  { id: 'gpt-5', label: 'GPT-5' },
+  { id: 'gpt-5.1', label: 'GPT-5.1 (Recomendado)' },
+];
+
+const CURRENCIES = [
+  {code:"BOB",label:"Bs. Boliviano (BOB)"},{code:"USD",label:"$ Dolar (USD)"},
+  {code:"PEN",label:"S/. Sol peruano (PEN)"},{code:"COP",label:"$ Peso colombiano (COP)"},
+  {code:"ARS",label:"$ Peso argentino (ARS)"},{code:"MXN",label:"$ Peso mexicano (MXN)"},
+];
+
+const EXAMPLE_PROMPT = `# 🎯 IDENTIDAD
+
+Eres camilo, vendedor profesional de WhatsApp (Bolivia). Hombre, amable, directo y humano.
+
+Tono: corto, cálido, cercano y boliviano.
+
+- Con mujeres: señorita / casera / estimada / amiga / [su nombre]
+- Con hombres: estimado / [su nombre]
+
+Nunca inventas datos. Siempre presionas de forma ética hacia la compra.
+
+---
+
+# 🧠 SECUENCIA PRINCIPAL
+
+## 1. Dar un bienvenida cálida y amigable y luego Identificación del producto (OBLIGATORIO)
+
+Antes de cualquier respuesta, identifica el producto de interés.
+
+Si no está identificado:
+
+- NO envíes bienvenida, precios, fotos ni beneficios.
+- Pregunta amablemente: "¿Qué producto te interesa?"
+
+El flujo no avanza hasta que el producto esté identificado.
+
+---
+
+## 2. Primera interacción (solo si el producto ya fue identificado)
+
+Si es la primera vez que el usuario consulta sobre ese producto:
+
+- Enviar el texto exacto del campo "Primer mensaje del producto identificado".
+- NO incluir precios en este mensaje.
+- Enviar 1 foto de "Imágenes principales" en fotos_mensaje1 (solo se puede enviar una vez).
+- Añadir gatillos mentales suaves: transformación, autoridad, prueba social.
+
+Una vez enviado el primer mensaje y la primera foto "Imágenes principales" → no repetirlo en ningún turno posterior.
+
+---
+
+## 3. Detección de intención
+
+Detecta una sola intención dominante por turno:
+Interés / Duda / Precio / Comparación / Compra / Entrega
+
+Máximo 3 mensajes por turno.
+
+---
+
+## 4. Precios
+
+Solo informa precios si el usuario los solicita explícitamente.
+
+- Precio unitario → cuando quiere 1 unidad.
+- Precio promo ×2 o Precio súper ×6 → cuando quiere 2 o más unidades.
+
+Usa gatillos de: ahorro, urgencia y beneficio inmediato.
+
+NUNCA inventas montos. Usa solo los precios de la base de conocimiento del producto.
+
+## 5. Fotos (usar solo si el usuario pide mas fotos del producto identificado)
+
+- Envía fotos reales desde "Más fotos del producto".
+
+---
+
+## 6. Testimonios y confianza (usar testimonios solo si existe)
+
+Si detectas duda, inseguridad o el usuario pide evidencias:
+
+- Envía fotos de testimonios reales desde "Fotos de testimonios" según la ocasión.
+- No repitas la misma foto en la misma conversación.
+- Acompaña con prueba social y credibilidad.
+
+---
+
+## 7. Comparación y cierre
+
+Guía suave hacia la decisión:
+
+- Resaltar beneficios del producto.
+- Mostrar resultados potenciales o transformación (sin inventar).
+- Los mensajes deben avanzar hacia:
+    - Confirmación de compra
+    - Datos de entrega
+    - Selección de variante
+
+Siempre con amabilidad y claridad.
+
+---
+
+# 📍 DIRECCIÓN
+
+Válida si incluye:
+
+- Ciudad
+- Calle
+- Zona
+- Nº (si existe)
+
+o coordenadas / link Maps.
+
+Si falta algo → pedir solo lo faltante o dirección en gps (validar coordenadas).
+
+Si es de provincia no pedir dirección detallada, en vez de eso preguntar por qué línea de transporte le gustaría que se lo mandemos. En cuanto confirme, pasar a CONFIRMACIÓN.
+
+No repetir datos ya enviados.
+
+---
+
+# 📦 CONFIRMACIÓN
+
+Se confirma solo si hay dirección completa o coordenadas válidas.
+
+El pago se coordina directo con asesor que se va a comunicar.
+
+Mensaje obligatorio:
+
+¡Gracias por tu confianza, [nombre]! 🚚💚
+
+Recibí tu dirección:
+
+📍 [dirección o coordenadas]
+
+Entrega estimada: dentro las primeras 8–24 horas después del pedido.
+
+Un encargado te llamará para coordinar ⭐
+
+---
+
+# 📝 REPORTE (solo si hubo confirmación)
+
+"Hola *camilo*, nuevo pedido de [nombre].
+Contacto: [teléfono] (Solo el número de teléfono sin textos).
+Dirección: [dirección o coordenadas].
+Descripción: [producto]."
+
+Si no hubo confirmación → "reporte": ""
+
+---
+
+# 🚨 REGLA OBLIGATORIA (NO NEGOCIABLE)
+
+Está prohibido inventar datos.
+Toda la información debe obtenerse únicamente de la base de conocimiento del producto.
+
+---
+
+# 🧩 REGLAS GENERALES
+
+- Tono cálido, cercano, empático y natural con acento boliviano.
+- No repetir fotos ni URLs de testimonios ya enviados.
+- No dar precios en los primeros mensajes.
+- En dudas → usar testimonios.
+- No pedir datos ya recibidos.
+- No ofrecer productos ya cerrados.
+- Usar *negritas con un asterisco por lado*.
+- Máx. 50 caracteres por mensaje (excepto el primer mensaje del producto).
+- 2 saltos de línea entre bloques de texto.
+- Responder siempre aunque el input llegue vacío: usar el historial.
+- Mensajes cortos, claros y humanos.
+
+---
+
+# 🔥 GATILLOS MENTALES (VENTA ÉTICA)
+
+- Urgencia, escasez, autoridad, prueba social, transformación.
+- Insistir de forma estratégica, amigable y respetuosa.
+- Objetivo principal: cerrar la venta.
+- Después de la confirmación → NO seguir vendiendo.
+
+---
+
+# 📏 REGLAS DE MENSAJES
+
+## mensaje1
+
+- Si es el primer mensaje del producto: enviar el texto completo tal cual.
+- Si no: máx. 60 caracteres. Con emojis. Sin preguntas. 2 saltos entre frases.
+
+## mensaje2 (opcional)
+
+- Máx. 50 caracteres. Pregunta suave o llamada a la acción.
+
+## mensaje3 (opcional)
+
+- Máx. 50 caracteres. Emoción, gatillo o pregunta de cierre.
+
+Usar solo 1 o 2 mensajes por turno.
+Usar mensaje2 y mensaje3 SOLO si realmente aportan valor.
+
+## Regla estricta
+
+- Jamás superar el límite de caracteres por mensaje.
+- Resaltar palabras clave con *negrita de un asterisco*.
+- Separar bloques con 2 saltos de línea.
+
+---
+
+# 🧠 REGLA FINAL
+
+Siempre generar una respuesta aunque no llegue texto nuevo.
+Leer el historial completo y responder con coherencia y continuidad.
+
+---
+
+# 📦 FORMATO DE SALIDA (OBLIGATORIO)
+
+{
+"mensaje1": "",
+"mensaje2": "",
+"mensaje3": "",
+"fotos_mensaje1": "",
+"reporte": ""
+}`;
+
+// ─── SVG ICONS ──
+const Ic = ({d,s=18,c="currentColor",f="none",sw=1.8}) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill={f} stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    {(Array.isArray(d)?d:[d]).map((p,i)=><path key={i} d={p}/>)}
+  </svg>
+);
+const IcArrow=({s,c})=><Ic s={s} c={c||"currentColor"} d="M19 12H5M5 12l7-7M5 12l7 7"/>;
+const IcKey=({s,c})=><Ic s={s} c={c||"currentColor"} d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>;
+const IcFile=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8M16 17H8M10 9H8"]}/>;
+const IcBox=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z","M3.27 6.96L12 12.01l8.73-5.05","M12 22.08V12"]}/>;
+const IcBell=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9","M13.73 21a2 2 0 01-3.46 0"]}/>;
+const IcQr=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM18 14h.01M14 14h.01M18 18h.01M14 18h.01M22 14h.01M22 18h.01M22 22h.01M14 22h.01M18 22h.01"]}/>;
+const IcPlus=({s,c})=><Ic s={s} c={c||"currentColor"} d="M12 5v14M5 12h14"/>;
+const IcEdit=({s,c})=><Ic s={s} c={c||"currentColor"} d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>;
+const IcTrash=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M3 6h18","M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2","M10 11v6M14 11v6"]}/>;
+const IcEye=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z","M12 12m-3 0a3 3 0 106 0 3 3 0 00-6 0"]}/>;
+const IcEyeOff=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24","M1 1l22 22"]}/>;
+const IcCheck=({s,c})=><Ic s={s} c={c||"currentColor"} d="M20 6L9 17l-5-5"/>;
+const IcMsg=({s,c})=><Ic s={s} c={c||"currentColor"} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>;
+const IcRight=({s,c})=><Ic s={s} c={c||"currentColor"} d="M9 18l6-6-6-6"/>;
+const IcX=({s,c})=><Ic s={s} c={c||"currentColor"} d="M18 6L6 18M6 6l12 12"/>;
+const IcStar=({s,c})=><Ic s={s} c={c||"currentColor"} d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>;
+const IcTruck=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3","M14 17h-4","M20 17h1a2 2 0 002-2v-3.34a1 1 0 00-.29-.71L18 7.5A1 1 0 0017.17 7H14","M17 17a2 2 0 100 4 2 2 0 000-4z","M7 17a2 2 0 100 4 2 2 0 000-4z"]}/>;
+const IcDollar=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M12 1v22","M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"]}/>;
+const IcImg=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M21 19a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h4l2-3h4l2 3h4a2 2 0 012 2z","M12 12m-3 0a3 3 0 106 0 3 3 0 00-6 0"]}/>;
+const IcHash=({s,c})=><Ic s={s} c={c||"currentColor"} d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/>;
+const IcZap=({s,c,f})=><Ic s={s} c={c||"currentColor"} f={f||"none"} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>;
+const IcWifi=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M5 12.55a11 11 0 0114 0","M1.42 9a16 16 0 0121.16 0","M8.53 16.11a6 6 0 016.95 0","M12 20h.01"]}/>;
+const IcRefresh=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M23 4v6h-6","M1 20v-6h6","M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"]}/>;
+const IcLink=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71","M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"]}/>;
+const IcUnlink=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M18.84 12.25l1.72-1.71a5 5 0 00-7.07-7.07l-1.72 1.71","M5.16 11.75l-1.72 1.71a5 5 0 007.07 7.07l1.72-1.71","M8 2v3","M2 8h3","M16 22v-3","M22 16h-3"]}/>;
+const IcClock=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M12 12m-10 0a10 10 0 1020 0 10 10 0 00-20 0","M12 6v6l4 2"]}/>;
+const IcShield=({s,c})=><Ic s={s} c={c||"currentColor"} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>;
+const IcTerminal=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M4 17l6-6-6-6","M12 19h8"]}/>;
+const IcUser=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 7a4 4 0 100 8 4 4 0 000-8z"]}/>;
+const IcSettings=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M12 12m-3 0a3 3 0 106 0 3 3 0 00-6 0","M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"]}/>;
+const IcHome=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z","M9 22V12h6v10"]}/>;
+const IcHelp=({s,c})=><Ic s={s} c={c||"currentColor"} d={["M12 12m-10 0a10 10 0 1020 0 10 10 0 00-20 0","M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3","M12 17h.01"]}/>;
+
+// ─── MINI COMPONENTS ──
+const Toast = ({show}) => show ? <div className="toast"><IcCheck s={18} c="#fff"/> Guardado correctamente!</div> : null;
+const Toggle = ({value, onChange}) => (
+  <div onClick={()=>onChange(!value)} className="toggle-track" style={{
+    background:value?"linear-gradient(135deg,#3eb8f0,#1a9de0)":"rgba(11,29,58,0.15)",
+    boxShadow:value?"0 0 16px rgba(62,184,240,0.5)":"none",
+    border:"1.5px solid "+(value?"rgba(62,184,240,0.5)":"rgba(11,29,58,0.15)")}}>
+    <div className="toggle-thumb" style={{left:value?28:3}}/>
+  </div>
+);
+const StatusDot = ({active}) => (
+  <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 12px",borderRadius:20,
+    background:active?"rgba(34,197,94,0.1)":"rgba(0,0,0,0.04)",
+    border:"1.5px solid "+(active?"rgba(34,197,94,0.3)":"rgba(0,0,0,0.08)"),
+    fontSize:11,fontWeight:800,letterSpacing:"0.08em",color:active?"#16a34a":"var(--text-light)"}}>
+    <span style={{width:7,height:7,borderRadius:"50%",background:active?"#22c55e":"#94a3b8",
+      animation:active?"pulse 2s infinite":"none",boxShadow:active?"0 0 8px rgba(34,197,94,0.6)":"none"}}/>
+    {active?"ACTIVO":"INACTIVO"}
+  </span>
+);
+const CardDeco = () => (<>
+  <div style={{position:"absolute",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(62,184,240,0.12),transparent 70%)",top:-60,right:-40,pointerEvents:"none"}}/>
+  <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(62,184,240,0.08),transparent 70%)",bottom:-40,left:20,pointerEvents:"none"}}/>
+</>);
+const SecHeader = ({icon:Ic2, label, color}) => (
+  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
+    <div style={{width:34,height:34,borderRadius:10,background:`${color}20`,display:"flex",alignItems:"center",justifyContent:"center",border:`1.5px solid ${color}40`}}>
+      <Ic2 s={16} c={color}/>
+    </div>
+    <span style={{color:"var(--navy-mid)",fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase"}}>{label}</span>
+  </div>
+);
+
+// ─── SIDEBAR ICON COMPONENT ──
+const SvgIcon = ({path, size=18}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{__html:path}}/>
+);
+
+const SIDEBAR_ICONS = {
+  dashboard:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/>',
+  bot:'<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+  profile:'<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+  support:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  logout:'<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  hamburger:'<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+  sales:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+};
+
+// ─── PROFILE MODAL ──
+const ProfileModal = ({user, onClose, onUpdate}) => {
+  const [profile, setProfile] = useState({...user});
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true);
+    try {
+      await authFetch(API + '/user/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ nombre: profile.nombre, apellido: profile.apellido, ciudad: profile.ciudad, usuario_fase: profile.usuario_fase, rango_fase: profile.rango_fase }),
+      });
+      onUpdate(profile);
+      onClose();
+    } catch(e) {} finally { setSaving(false); }
+  };
+  const uploadPhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch(API + '/user/profile/photo', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+    const data = await res.json();
+    if (data.url) { setProfile({...profile, foto_perfil: data.url}); onUpdate({...profile, foto_perfil: data.url}); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <h3 style={{color:'var(--text)',fontSize:18,fontWeight:700}}>Mi Perfil</h3>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer'}}><IcX s={20} c="var(--text-light)"/></button>
+        </div>
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <div style={{width:80,height:80,borderRadius:24,margin:'0 auto 10px',
+            background:profile.foto_perfil?`url(${profile.foto_perfil}) center/cover`:'linear-gradient(135deg,#3eb8f0,#1a9de0)',
+            display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:28,fontWeight:700,
+            border:'3px solid rgba(62,184,240,0.3)',position:'relative',overflow:'hidden'}}>
+            {!profile.foto_perfil && (profile.nombre||'?')[0].toUpperCase()}
+            <input type="file" accept="image/*" onChange={uploadPhoto} style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}/>
+          </div>
+          <p style={{color:'var(--text-light)',fontSize:11}}>Clic para cambiar foto</p>
+        </div>
+        <div className="grid-2" style={{marginBottom:14}}>
+          <div><label className="lbl">Nombre</label><input className="inp" value={profile.nombre||''} onChange={e=>setProfile({...profile,nombre:e.target.value})}/></div>
+          <div><label className="lbl">Apellido</label><input className="inp" value={profile.apellido||''} onChange={e=>setProfile({...profile,apellido:e.target.value})}/></div>
+        </div>
+        <div className="grid-2" style={{marginBottom:14}}>
+          <div><label className="lbl">Ciudad</label><input className="inp" value={profile.ciudad||''} onChange={e=>setProfile({...profile,ciudad:e.target.value})}/></div>
+          <div><label className="lbl">Rango Fase Global</label><input className="inp" value={profile.rango_fase||''} onChange={e=>setProfile({...profile,rango_fase:e.target.value})}/></div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label className="lbl">Usuario Fase Global</label>
+          <input className="inp" value={profile.usuario_fase||''} onChange={e=>setProfile({...profile,usuario_fase:e.target.value})}/>
+        </div>
+        <div className="grid-2" style={{marginBottom:14}}>
+          <div><label className="lbl">Correo</label><input className="inp" value={profile.email||''} disabled style={{opacity:0.6}}/></div>
+          <div><label className="lbl">Registro</label><input className="inp" value={profile.created_at?new Date(profile.created_at).toLocaleDateString('es'):'—'} disabled style={{opacity:0.6}}/></div>
+        </div>
+        <button className="btn-cyan" onClick={save} disabled={saving} style={{width:'100%',justifyContent:'center'}}>
+          <IcCheck s={16} c="#fff"/> {saving?'Guardando...':'Guardar Perfil'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── TAB: CREDENCIALES ──
+const TabCreds = ({bot, onUpdate}) => {
+  const [creds, setCreds] = useState({...bot.credentials});
+  const [model, setModel] = useState(bot.model || 'gpt-5.1');
+  const [active, setActive] = useState(bot.active);
+  const [showKey, setShowKey] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [reportError, setReportError] = useState('');
+
+  const validateReportNumber = (num) => {
+    if (!num || num.trim() === '') return '';
+    const clean = num.replace(/[\s\-\+]/g, '');
+    if (!/^\d+$/.test(clean)) return 'El numero solo debe contener digitos';
+    if (clean.length < 8) return 'El numero debe tener al menos 8 digitos';
+    if (clean.length > 15) return 'El numero es demasiado largo';
+    return '';
+  };
+
+  const save = () => {
+    const err = validateReportNumber(creds.reportNumber);
+    if (err) { setReportError(err); return; }
+    setReportError('');
+    onUpdate({credentials:creds, active, model}); setSaved(true); setTimeout(()=>setSaved(false),2500);
+  };
+
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div className="sec-card" style={{background:active?"rgba(34,197,94,0.06)":"var(--bg-card)",border:active?"1.5px solid rgba(34,197,94,0.2)":"1px solid var(--border)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:4}}>Estado del agente</div>
+            <div style={{color:"var(--text-secondary)",fontSize:13}}>{active?"El agente esta respondiendo mensajes":"El agente esta pausado"}</div>
+          </div>
+          <Toggle value={active} onChange={setActive}/>
+        </div>
+      </div>
+
+      <div className="sec-card">
+        <SecHeader icon={IcKey} label="Claves de API" color="#3eb8f0"/>
+        <div style={{marginBottom:20}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <label className="lbl" style={{marginBottom:0}}>OpenAI API Key</label>
+            {creds.openaiKey && <span style={{color:"#22c55e",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}><IcCheck s={11} c="#22c55e"/> configurada</span>}
+          </div>
+          <div style={{position:"relative"}}>
+            <input type={showKey?"text":"password"} className="inp" value={creds.openaiKey} onChange={e=>setCreds(c=>({...c,openaiKey:e.target.value}))} placeholder="sk-proj-..."/>
+            <button onClick={()=>setShowKey(!showKey)} style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer"}}>
+              {showKey?<IcEyeOff s={16} c="var(--text-light)"/>:<IcEye s={16} c="var(--text-light)"/>}
+            </button>
+          </div>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label className="lbl">Modelo de IA</label>
+          <select className="inp" value={model} onChange={e=>setModel(e.target.value)}>
+            {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="lbl">Numero interno para reportes</label>
+          <input className="inp" value={creds.reportNumber} onChange={e=>{setCreds(c=>({...c,reportNumber:e.target.value}));setReportError('');}} placeholder="ej. 591XXXXXXXX" style={reportError?{borderColor:'#ff6b8a',boxShadow:'0 0 0 3px rgba(255,107,138,0.15)'}:{}}/>
+          {reportError && <div style={{color:'#ff6b8a',fontSize:12,marginTop:6,fontWeight:500}}>{reportError}</div>}
+        </div>
+      </div>
+
+      <button className="btn-cyan" onClick={save} style={{width:"100%",justifyContent:"center",padding:"13px"}}>
+        <IcCheck s={18} c="#fff"/> Guardar credenciales
+      </button>
+    </div>
+  );
+};
+
+// ─── TAB: PLANTILLA ──
+const TabPlantilla = ({bot, onUpdate}) => {
+  const [tpl, setTpl] = useState({...bot.template});
+  const [saved, setSaved] = useState(false);
+  const save = () => { onUpdate({template:tpl}); setSaved(true); setTimeout(()=>setSaved(false),2500); };
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div className="sec-card">
+        <SecHeader icon={IcFile} label="Prompt del vendedor" color="#3eb8f0"/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <label className="lbl" style={{marginBottom:0}}>Instrucciones del vendedor (system prompt)</label>
+          <button onClick={()=>setTpl(t=>({...t,systemPrompt:EXAMPLE_PROMPT}))} style={{background:"rgba(62,184,240,0.1)",border:"1.5px solid rgba(62,184,240,0.3)",color:"#1a9de0",borderRadius:10,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            Cargar ejemplo
+          </button>
+        </div>
+        <textarea className="inp ta" rows={14} value={tpl.systemPrompt} onChange={e=>setTpl(t=>({...t,systemPrompt:e.target.value}))} style={{minHeight:260}}/>
+      </div>
+      <div className="sec-card">
+        <label className="lbl">Limite de caracteres por mensaje</label>
+        <div className="grid-3">
+          {[["msg1Limit","Mensaje 1"],["msg2Limit","Mensaje 2"],["msg3Limit","Mensaje 3"]].map(([k,l])=>(
+            <div key={k}><label className="lbl" style={{fontSize:10}}>{l}</label>
+              <input type="number" className="inp" value={tpl[k]} onChange={e=>setTpl(t=>({...t,[k]:Number(e.target.value)}))} style={{textAlign:"center",fontSize:20,fontWeight:800,padding:"12px 8px"}}/>
+            </div>
+          ))}
+        </div>
+      </div>
+      <button className="btn-navy" onClick={save} style={{width:"100%",justifyContent:"center",padding:"13px"}}>
+        <IcCheck s={18} c="#fff"/> Guardar plantilla
+      </button>
+    </div>
+  );
+};
+
+// ─── PRODUCT FORM ──
+const ProductForm = ({product, onSave, onCancel, botId}) => {
+  const initTestimonios = (product?.testimonios || []).map(t =>
+    typeof t === 'string' ? {url: t, descripcion: ''} : {url: t?.url||'', descripcion: t?.descripcion||''}
+  );
+  const [p, setP] = useState({
+    id:null, nombre:"", descripcion:"", beneficios:"", modoUso:"", advertencias:"",
+    moneda:"BOB", precioUnitario:"", precioPromo2:"", precioSuper6:"", precioOferta:"",
+    imagenes:["","",""], masImagenes:["","","","",""],
+    testimonios: initTestimonios.length > 0 ? initTestimonios : [],
+    infoEnvio:"", cobertura:"", hooks:"",
+    ...(product || {}),
+    ...(product ? {testimonios: initTestimonios.length > 0 ? initTestimonios : []} : {})
+  });
+
+  const F = ({label, fkey, rows, ph}) => (
+    <div style={{marginBottom:14}}>
+      {label && <label className="lbl">{label}</label>}
+      {rows ? <textarea className="inp ta" rows={rows} value={p[fkey]||""} onChange={e=>setP(x=>({...x,[fkey]:e.target.value}))} placeholder={ph}/>
+        : <input className="inp" value={p[fkey]||""} onChange={e=>setP(x=>({...x,[fkey]:e.target.value}))} placeholder={ph}/>}
+    </div>
+  );
+
+  const uploadImage = async (file, index, field) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    try {
+      const res = await fetch(API + `/bots/${botId}/products/upload-image`, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
+      });
+      const data = await res.json();
+      if (data.url) {
+        const arr = [...(p[field]||[])];
+        arr[index] = data.url;
+        setP(x => ({...x, [field]: arr}));
+      }
+    } catch(e) { alert('Error al subir imagen'); }
+  };
+
+  const removeImageRow = (field, index) => {
+    const arr = [...(p[field]||[])];
+    arr.splice(index, 1);
+    setP(x => ({...x, [field]: arr}));
+  };
+
+  const addImageRow = (field) => {
+    setP(x => ({...x, [field]: [...(x[field]||[]), '']}));
+  };
+
+  const ImageInput = ({index, field, label, canDelete}) => {
+    const val = (p[field]||[])[index] || '';
+    return (
+      <div style={{marginBottom:8}}>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input className="inp" value={val} onChange={e => {const a=[...(p[field]||[])];a[index]=e.target.value;setP(x=>({...x,[field]:a}))}} placeholder={`URL o subir ${label}`} style={{flex:1}}/>
+          <label style={{background:'rgba(62,184,240,0.1)',border:'1.5px solid rgba(62,184,240,0.3)',borderRadius:10,padding:'10px 14px',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
+            <IcImg s={14} c="#3eb8f0"/>
+            <input type="file" accept="image/*" onChange={e=>e.target.files[0]&&uploadImage(e.target.files[0],index,field)} style={{display:'none'}}/>
+          </label>
+          {canDelete && <button onClick={()=>removeImageRow(field,index)} style={{background:'rgba(239,68,68,0.1)',border:'1.5px solid rgba(239,68,68,0.3)',borderRadius:10,padding:'10px 12px',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center'}} title="Eliminar fila">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>}
+        </div>
+        {val && (val.startsWith('/uploads/') || val.startsWith('http')) && <img src={val} alt="" style={{width:60,height:60,objectFit:'cover',borderRadius:8,marginTop:6,border:'1px solid rgba(0,0,0,0.1)'}}/>}
+      </div>
+    );
+  };
+
+  // Testimonios helpers
+  const addTestimonio = () => {
+    setP(x => ({...x, testimonios: [...(x.testimonios||[]), {url:'', descripcion:''}]}));
+  };
+  const removeTestimonio = (index) => {
+    const arr = [...(p.testimonios||[])];
+    arr.splice(index, 1);
+    setP(x => ({...x, testimonios: arr}));
+  };
+  const updateTestimonio = (index, key, value) => {
+    const arr = [...(p.testimonios||[])];
+    arr[index] = {...arr[index], [key]: value};
+    setP(x => ({...x, testimonios: arr}));
+  };
+  const uploadTestimonioImage = async (file, index) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    try {
+      const res = await fetch(API + `/bots/${botId}/products/upload-image`, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
+      });
+      const data = await res.json();
+      if (data.url) updateTestimonio(index, 'url', data.url);
+    } catch(e) { alert('Error al subir imagen de testimonio'); }
+  };
+
+  return (
+    <div style={{overflowY:"auto",maxHeight:"68vh",paddingRight:4}}>
+      <div className="sec-card">
+        <SecHeader icon={IcBox} label="Informacion basica" color="#3eb8f0"/>
+        {F({label:"Nombre del producto", fkey:"nombre", ph:"ej. FASE DETOX"})}
+        {F({label:"Descripcion corta", fkey:"descripcion", rows:2, ph:"Breve descripcion..."})}
+      </div>
+      <div className="sec-card">
+        <SecHeader icon={IcFile} label="Descripcion" color="#1a9de0"/>
+        {F({label:"Beneficios", fkey:"beneficios", rows:4, ph:"Lista los beneficios..."})}
+        {F({label:"Modo de uso", fkey:"modoUso", rows:3, ph:"Instrucciones..."})}
+        {F({label:"Advertencias", fkey:"advertencias", rows:2, ph:"No aplicar en..."})}
+      </div>
+      <div className="sec-card">
+        <SecHeader icon={IcDollar} label="Precios" color="#22c55e"/>
+        <div style={{marginBottom:14}}>
+          <label className="lbl">Moneda</label>
+          <select className="inp" value={p.moneda} onChange={e=>setP(x=>({...x,moneda:e.target.value}))}>
+            {CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+        </div>
+        <div className="grid-3">
+          {[["precioUnitario","Unitario"],["precioPromo2","Promo x2"],["precioSuper6","Super x6"]].map(([k,l])=>(
+            <div key={k}><label className="lbl" style={{fontSize:10}}>{l}</label>
+              <input type="number" className="inp" value={p[k]||""} onChange={e=>setP(x=>({...x,[k]:e.target.value}))} placeholder="0.00" style={{textAlign:"right"}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:14}}>
+          <label className="lbl" style={{color:"#ef4444"}}>Precio de oferta</label>
+          <input type="number" className="inp" value={p.precioOferta||""} onChange={e=>setP(x=>({...x,precioOferta:e.target.value}))} placeholder="0.00" style={{textAlign:"right",borderColor:"rgba(239,68,68,0.3)"}}/>
+        </div>
+      </div>
+      <div className="sec-card">
+        <SecHeader icon={IcImg} label="Imagenes del producto" color="#f59e0b"/>
+        <p style={{color:'var(--text-light)',fontSize:12,marginBottom:12}}>Sube imagenes o pega URLs. El agente podra enviarlas por WhatsApp.</p>
+        {(p.imagenes||[]).map((_, i) => <React.Fragment key={'img'+i}>{ImageInput({index:i, field:"imagenes", label:`imagen ${i+1}`, canDelete:(p.imagenes||[]).length>1})}</React.Fragment>)}
+        <button onClick={()=>addImageRow('imagenes')} style={{background:'none',border:'1.5px dashed rgba(62,184,240,0.4)',borderRadius:10,padding:'8px 16px',cursor:'pointer',color:'var(--cyan)',fontSize:12,fontWeight:700,width:'100%',marginTop:4}}>+ Agregar imagen</button>
+
+        <div style={{marginTop:20,marginBottom:8}}>
+          <span style={{color:"var(--cyan)",fontSize:11,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase"}}>Fotos de oferta</span>
+        </div>
+        <p style={{color:'var(--text-light)',fontSize:11,marginBottom:10}}>Fotos promocionales que el agente enviara cuando el cliente pregunte por ofertas.</p>
+        {(p.masImagenes||[]).map((_, i) => <React.Fragment key={'of'+i}>{ImageInput({index:i, field:"masImagenes", label:`foto oferta ${i+1}`, canDelete:(p.masImagenes||[]).length>1})}</React.Fragment>)}
+        <button onClick={()=>addImageRow('masImagenes')} style={{background:'none',border:'1.5px dashed rgba(62,184,240,0.4)',borderRadius:10,padding:'8px 16px',cursor:'pointer',color:'var(--cyan)',fontSize:12,fontWeight:700,width:'100%',marginTop:4}}>+ Agregar foto de oferta</button>
+      </div>
+
+      <div className="sec-card">
+        <SecHeader icon={IcCheck} label="Fotos de testimonio" color="#8b5cf6"/>
+        <p style={{color:'var(--text-light)',fontSize:12,marginBottom:12}}>Testimonios de clientes. El agente los enviara cuando el cliente pida ver resultados u opiniones.</p>
+        {(p.testimonios||[]).map((t, i) => (
+          <div key={'test'+i} style={{marginBottom:14,padding:14,background:'rgba(139,92,246,0.04)',border:'1px solid rgba(139,92,246,0.15)',borderRadius:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <span style={{fontSize:11,fontWeight:700,color:'#8b5cf6'}}>Testimonio {i+1}</span>
+              <button onClick={()=>removeTestimonio(i)} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontSize:11,fontWeight:600,color:'#ef4444'}}>Eliminar</button>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:8}}>
+              <input className="inp" value={t.url||''} onChange={e=>updateTestimonio(i,'url',e.target.value)} placeholder="URL de la imagen" style={{flex:1}}/>
+              <label style={{background:'rgba(139,92,246,0.1)',border:'1.5px solid rgba(139,92,246,0.3)',borderRadius:10,padding:'10px 14px',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>
+                <IcImg s={14} c="#8b5cf6"/>
+                <input type="file" accept="image/*" onChange={e=>e.target.files[0]&&uploadTestimonioImage(e.target.files[0],i)} style={{display:'none'}}/>
+              </label>
+            </div>
+            {t.url && (t.url.startsWith('/uploads/') || t.url.startsWith('http')) && <img src={t.url} alt="" style={{width:60,height:60,objectFit:'cover',borderRadius:8,marginBottom:8,border:'1px solid rgba(0,0,0,0.1)'}}/>}
+            <textarea className="inp ta" rows={2} value={t.descripcion||''} onChange={e=>updateTestimonio(i,'descripcion',e.target.value)} placeholder="Descripcion del testimonio (ej: Cliente satisfecho despues de usar el producto)" style={{fontSize:12}}/>
+          </div>
+        ))}
+        <button onClick={addTestimonio} style={{background:'none',border:'1.5px dashed rgba(139,92,246,0.4)',borderRadius:10,padding:'8px 16px',cursor:'pointer',color:'#8b5cf6',fontSize:12,fontWeight:700,width:'100%',marginTop:4}}>+ Agregar testimonio</button>
+      </div>
+
+      <div className="sec-card">
+        <SecHeader icon={IcTruck} label="Envio & Cobertura" color="#a3e635"/>
+        {F({label:"Info de envio", fkey:"infoEnvio", rows:2, ph:"ENVIOS A TODO EL PAIS"})}
+        {F({label:"Cobertura", fkey:"cobertura", ph:"LA PAZ, COCHABAMBA, SANTA CRUZ"})}
+      </div>
+      <div className="sec-card">
+        <SecHeader icon={IcHash} label="Hooks (Keywords)" color="#fbbf24"/>
+        <label className="lbl">Palabras clave — una por linea</label>
+        <textarea className="inp ta" rows={5} value={p.hooks||""} onChange={e=>setP(x=>({...x,hooks:e.target.value}))} placeholder={"precio\nquiero comprar\ncuanto cuesta"}/>
+      </div>
+      <div style={{display:"flex",gap:12,paddingBottom:20}}>
+        <button className="btn-ghost" onClick={onCancel} style={{flex:1,textAlign:"center",justifyContent:"center"}}>Cancelar</button>
+        <button className="btn-success" onClick={()=>onSave(p)} style={{flex:1,justifyContent:"center"}}>
+          <IcCheck s={16} c="#fff"/> {product?"Actualizar":"Crear producto"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── TAB: PRODUCTOS ──
+const TabProductos = ({bot, onUpdate}) => {
+  const [products, setProducts] = useState([...bot.products]);
+  const [editing, setEditing] = useState(null);
+  const [saved, setSaved] = useState(false);
+  const saveProduct = (p) => {
+    const next = editing==="new" ? [...products,{...p,id:Date.now().toString()}] : products.map(x=>x.id===p.id?p:x);
+    setProducts(next); onUpdate({products:next}); setEditing(null);
+    setSaved(true); setTimeout(()=>setSaved(false),2500);
+  };
+
+  if (editing) return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button className="btn-ghost" onClick={()=>setEditing(null)} style={{padding:"8px 16px",fontSize:13}}>Volver</button>
+        <h3 style={{color:"var(--text)",fontSize:15,fontWeight:700}}>{editing==="new"?"Nuevo producto":`Editar: ${editing.nombre}`}</h3>
+      </div>
+      <ProductForm product={editing==="new"?null:editing} onSave={saveProduct} onCancel={()=>setEditing(null)} botId={bot.id}/>
+    </div>
+  );
+
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div><h3 style={{color:"var(--text)",fontSize:15,fontWeight:700}}>Productos del agente</h3>
+          <p style={{color:"var(--text-secondary)",fontSize:13}}>El agente IA consultara esta base de conocimiento</p></div>
+        <button className="btn-cyan" onClick={()=>setEditing("new")} style={{padding:"10px 20px"}}>
+          <IcPlus s={16} c="#fff"/> Nuevo
+        </button>
+      </div>
+      {products.length===0
+        ? <div className="sec-card" style={{textAlign:"center",padding:48}}>
+            <div style={{fontSize:40,marginBottom:12}}>📦</div>
+            <p style={{color:"var(--text-secondary)",marginBottom:16}}>No hay productos aun.</p>
+            <button className="btn-cyan" onClick={()=>setEditing("new")} style={{margin:"0 auto",padding:"10px 24px"}}><IcPlus s={15} c="#fff"/> Agregar producto</button>
+          </div>
+        : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {products.map(p=>(
+              <div key={p.id} className="sec-card" style={{display:"flex",alignItems:"center",gap:16,marginBottom:0,cursor:"pointer"}}>
+                <div style={{width:48,height:48,borderRadius:14,background:"rgba(62,184,240,0.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1.5px solid rgba(62,184,240,0.15)"}}>
+                  {p.imagenes && p.imagenes[0] ? <img src={p.imagenes[0]} style={{width:44,height:44,borderRadius:12,objectFit:'cover'}}/> : <IcBox s={22} c="#3eb8f0"/>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{p.nombre}</div>
+                  <div style={{color:"var(--text-secondary)",fontSize:12,marginTop:2}}>{p.descripcion||"Sin descripcion"}</div>
+                  <div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>
+                    <span style={{color:"#22c55e",fontSize:12,fontWeight:700}}>{p.moneda} {p.precioUnitario||"—"}</span>
+                    {p.precioOferta && <span style={{color:"#ef4444",fontSize:12,fontWeight:700}}>Oferta: {p.moneda} {p.precioOferta}</span>}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setEditing(p)} style={{width:36,height:36,borderRadius:10,background:"rgba(62,184,240,0.08)",border:"1.5px solid rgba(62,184,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <IcEdit s={14} c="#3eb8f0"/>
+                  </button>
+                  <button onClick={()=>{if(!confirm('Eliminar este producto?'))return;const n=products.filter(x=>x.id!==p.id);setProducts(n);onUpdate({products:n});}} style={{width:36,height:36,borderRadius:10,background:"rgba(239,68,68,0.05)",border:"1.5px solid rgba(239,68,68,0.15)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <IcTrash s={14} c="#ef4444"/>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+      }
+    </div>
+  );
+};
+
+// ─── TAB: SEGUIMIENTOS ──
+const TabSeguimientos = ({bot, onUpdate}) => {
+  const [seg, setSeg] = useState({...bot.seguimientos});
+  const [saved, setSaved] = useState(false);
+  const save = () => { onUpdate({seguimientos:seg}); setSaved(true); setTimeout(()=>setSaved(false),2500); };
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div className="navy navy-wave" style={{padding:28,marginBottom:16,position:"relative",borderRadius:"var(--radius-lg)"}}>
+        <CardDeco/>
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24,position:"relative",zIndex:1}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(62,184,240,0.15)",border:"1.5px solid rgba(62,184,240,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <IcBell s={22} c="#3eb8f0"/>
+          </div>
+          <div><h3 style={{color:"#fff",fontSize:16,fontWeight:700}}>Configuracion de Seguimientos</h3>
+            <p style={{color:"rgba(255,255,255,0.55)",fontSize:13}}>Define los intervalos para re-interactuar con clientes.</p></div>
+        </div>
+        <div style={{display:"flex",gap:16,position:"relative",zIndex:1}}>
+          {[["seg1","1ER SEGUIMIENTO","Min."],["seg2","2DO SEGUIMIENTO","Min."]].map(([k,label,unit])=>(
+            <div key={k} style={{flex:1}}>
+              <label style={{display:"block",color:"rgba(255,255,255,0.5)",fontSize:10,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:10}}>{label}</label>
+              <div style={{position:"relative"}}>
+                <input type="number" value={seg[k]} onChange={e=>setSeg(s=>({...s,[k]:Number(e.target.value)}))}
+                  style={{width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(62,184,240,0.3)",borderRadius:14,padding:"14px 60px 14px 18px",color:"#fff",fontSize:24,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",outline:"none"}}/>
+                <span style={{position:"absolute",right:16,top:"50%",transform:"translateY(-50%)",color:"rgba(255,255,255,0.4)",fontSize:11,fontWeight:700}}>{unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:24,position:"relative",zIndex:1}}>
+          <button className="btn-cyan" onClick={save}><IcCheck s={16} c="#fff"/> Guardar</button>
+        </div>
+      </div>
+      <div className="sec-card" style={{background:"rgba(245,158,11,0.04)",border:"1.5px solid rgba(245,158,11,0.15)"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+          <div style={{width:40,height:40,borderRadius:12,background:"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <IcZap s={18} c="#f59e0b"/>
+          </div>
+          <div>
+            <h4 style={{color:"#92400e",fontSize:14,fontWeight:700,marginBottom:8}}>Como funciona?</h4>
+            <p style={{color:"#78716c",fontSize:13,lineHeight:1.7}}>
+              El sistema detecta clientes que dejaron en visto. Si no responden en el intervalo programado, el agente envia un seguimiento automatico usando IA. Los seguimientos se detienen si el cliente responde.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── TAB: WHATSAPP CONNECTION ──
+const WA_STATES = {
+  disconnected:{label:'No conectado',color:'#94a3b8',bg:'rgba(148,163,184,0.08)',dot:'#94a3b8'},
+  generating:{label:'Generando QR...',color:'#f59e0b',bg:'rgba(245,158,11,0.08)',dot:'#f59e0b'},
+  waiting_scan:{label:'Esperando escaneo',color:'#3eb8f0',bg:'rgba(62,184,240,0.08)',dot:'#3eb8f0'},
+  connected:{label:'Conectado',color:'#22c55e',bg:'rgba(34,197,94,0.08)',dot:'#22c55e'},
+  error:{label:'Error',color:'#ef4444',bg:'rgba(239,68,68,0.08)',dot:'#ef4444'},
+  reconnecting:{label:'Reconectando...',color:'#f59e0b',bg:'rgba(245,158,11,0.08)',dot:'#f59e0b'},
+};
+
+const TabQR = ({bot, onUpdate}) => {
+  const [status, setStatus] = useState(bot.whatsapp?.status || 'disconnected');
+  const [qrImg, setQrImg] = useState(null);
+  const [error, setError] = useState(null);
+  const [phone, setPhone] = useState(bot.whatsapp?.phone || null);
+  const [lastConn, setLastConn] = useState(bot.whatsapp?.lastConnected || null);
+  const [logs, setLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [inbox, setInbox] = useState([]);
+  const [unread, setUnread] = useState(0);
+  const [showInbox, setShowInbox] = useState(true);
+  const pollRef = useRef(null);
+  const aliveRef = useRef(true);
+  const qrTimerRef = useRef(null);
+  const msgPollRef = useRef(null);
+
+  const addLog = (msg, type='info') => {
+    const t = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setLogs(prev => [{t,msg,type},...prev].slice(0,50));
+  };
+
+  const waApi = async (path, method='GET', body) => {
+    const url = `${WA_API}/${bot.id}${path}`;
+    const opts = {method, headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error||`HTTP ${res.status}`); }
+    return res.json();
+  };
+
+  const renderQR = async (data) => {
+    if (!data) return;
+    try {
+      if (typeof QRCode!=='undefined' && QRCode.toDataURL) {
+        const url = await QRCode.toDataURL(data,{width:220,margin:2,color:{dark:'#0b1d3a',light:'#ffffff'},errorCorrectionLevel:'M'});
+        setQrImg(url);
+      }
+    } catch(e) { addLog('Error renderizando QR','error'); }
+  };
+
+  const stopPoll = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current=null; }
+    if (qrTimerRef.current) { clearTimeout(qrTimerRef.current); qrTimerRef.current=null; }
+  };
+
+  const startPoll = () => {
+    stopPoll();
+    pollRef.current = setInterval(async () => {
+      if (!aliveRef.current) return stopPoll();
+      try {
+        const d = await waApi('/status');
+        if (!aliveRef.current) return;
+        if (d.status==='waiting_scan'||d.status==='qr_ready') {
+          if (d.qrDataURL) { setQrImg(d.qrDataURL); setStatus('waiting_scan'); }
+          else if (d.qr) { await renderQR(d.qr); setStatus('waiting_scan'); }
+        }
+        if (d.status==='connected') {
+          setStatus('connected'); setPhone(d.phone||phone);
+          setLastConn(new Date().toISOString());
+          onUpdate({whatsapp:{status:'connected',phone:d.phone,lastConnected:new Date().toISOString()}});
+          addLog('WhatsApp conectado','success');
+          setSaved(true); setTimeout(()=>setSaved(false),2500);
+          stopPoll();
+        }
+        if (d.status==='disconnected'&&status!=='disconnected') {
+          setStatus('disconnected'); addLog('Sesion finalizada','error'); stopPoll();
+        }
+      } catch(e) {}
+    }, 3000);
+    qrTimerRef.current = setTimeout(() => {
+      if (status==='waiting_scan'||status==='generating') {
+        setStatus('error'); setError('QR expirado. Genera uno nuevo.'); setQrImg(null); addLog('QR expirado','error'); stopPoll();
+      }
+    }, 60000);
+  };
+
+  useEffect(() => {
+    aliveRef.current = true;
+    waApi('/status').then(d => {
+      if (d.status) setStatus(d.status==='qr_ready'?'waiting_scan':d.status);
+      if (d.phone) setPhone(d.phone);
+      if (d.lastConnected) setLastConn(d.lastConnected);
+      if (d.status==='connected') addLog('Sesion activa detectada','success');
+    }).catch(()=>addLog('Backend no disponible','info'));
+    return () => { aliveRef.current=false; stopPoll(); stopMsgPoll(); };
+  }, [bot.id]);
+
+  const fetchMessages = async () => {
+    try { const d = await waApi('/messages?limit=50'); if (d.messages) { setInbox(d.messages); setUnread(d.unread||0); } } catch(e) {}
+  };
+  const stopMsgPoll = () => { if(msgPollRef.current){clearInterval(msgPollRef.current);msgPollRef.current=null;} };
+  const startMsgPoll = () => { stopMsgPoll(); fetchMessages(); msgPollRef.current = setInterval(fetchMessages, 2000); };
+  useEffect(() => { if (status==='connected') startMsgPoll(); else stopMsgPoll(); return ()=>stopMsgPoll(); }, [status]);
+
+  const generateQR = async () => {
+    setStatus('generating'); setError(null); setQrImg(null); addLog('Solicitando sesion...');
+    try {
+      const d = await waApi('/start','POST');
+      if (d.qrDataURL||d.qr) {
+        if (d.qrDataURL) setQrImg(d.qrDataURL); else await renderQR(d.qr);
+        setStatus('waiting_scan'); addLog('QR generado — escanea con WhatsApp'); startPoll();
+      } else if (d.status==='connected') { setStatus('connected'); setPhone(d.phone); addLog('Ya conectado','success'); }
+      else { setStatus('waiting_scan'); addLog('Esperando QR...'); startPoll(); }
+    } catch(e) { setStatus('error'); setError(e.message); addLog(`Error: ${e.message}`,'error'); }
+  };
+
+  const reconnect = async () => {
+    setStatus('reconnecting'); setError(null); setQrImg(null); addLog('Reconectando...');
+    try {
+      const d = await waApi('/reconnect','POST');
+      if (d.status==='connected') { setStatus('connected'); addLog('Reconectado','success'); }
+      else { setStatus('waiting_scan'); if (d.qrDataURL) setQrImg(d.qrDataURL); else if (d.qr) await renderQR(d.qr); startPoll(); }
+    } catch(e) { setStatus('error'); setError(e.message); addLog(`Error: ${e.message}`,'error'); }
+  };
+
+  const disconnect = async () => {
+    if (!confirm('Desvincular WhatsApp?')) return;
+    try { await waApi('/disconnect','POST'); } catch(e) {}
+    setStatus('disconnected'); setQrImg(null); setPhone(null); setLastConn(null);
+    onUpdate({whatsapp:{status:'disconnected',phone:null,lastConnected:null}});
+    addLog('WhatsApp desvinculado'); stopPoll();
+  };
+
+  const st = WA_STATES[status]||WA_STATES.disconnected;
+  const isLoading = status==='generating'||status==='reconnecting';
+  const isWaiting = status==='waiting_scan';
+  const isConnected = status==='connected';
+  const canGenerate = status==='disconnected'||status==='error';
+
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <Toast show={saved}/>
+      <div className="wa-status-bar" style={{background:st.bg,border:`1.5px solid ${st.color}30`,marginBottom:16}}>
+        <div style={{width:10,height:10,borderRadius:'50%',background:st.dot,boxShadow:isConnected?`0 0 10px ${st.color}`:'none',animation:isConnected?'pulse 2s infinite':isLoading?'dotBlink 1s infinite':'none',flexShrink:0}}/>
+        <span style={{color:st.color,fontWeight:700,fontSize:13,flex:1}}>{st.label}</span>
+        {phone&&isConnected&&<span style={{color:'var(--text)',fontSize:12,fontWeight:600,fontFamily:"'JetBrains Mono',monospace"}}>{phone}</span>}
+      </div>
+      <div className="navy navy-wave" style={{padding:32,textAlign:"center",marginBottom:16,position:"relative",borderRadius:"var(--radius-lg)"}}>
+        <CardDeco/>
+        <div style={{position:"relative",zIndex:1}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:6}}>
+            <IcWifi s={20} c="#5dd0ff"/><h3 style={{color:"#fff",fontSize:17,fontWeight:700}}>Conectar WhatsApp</h3>
+          </div>
+          <p style={{color:"rgba(255,255,255,0.45)",fontSize:13,marginBottom:24}}>Vincula WhatsApp a este agente mediante QR</p>
+          <div className="wa-qr-container" style={{
+            background:isConnected?'rgba(34,197,94,0.08)':isWaiting?'rgba(255,255,255,0.06)':'rgba(255,255,255,0.04)',
+            border:`2px solid ${isConnected?'rgba(34,197,94,0.4)':isWaiting?'rgba(62,184,240,0.4)':'rgba(255,255,255,0.1)'}`,
+            animation:isWaiting?'qrPulse 2.5s ease-in-out infinite':'none'
+          }}>
+            {isConnected?(<div style={{textAlign:"center"}}>
+              <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(34,197,94,0.15)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',border:'2px solid rgba(34,197,94,0.3)'}}>
+                <IcCheck s={32} c="#22c55e"/></div>
+              <div style={{color:"#22c55e",fontSize:16,fontWeight:800}}>WhatsApp Conectado</div>
+              {phone&&<div style={{color:"rgba(255,255,255,0.5)",fontSize:13,marginTop:6,fontFamily:"'JetBrains Mono',monospace"}}>{phone}</div>}
+            </div>)
+            :isWaiting&&qrImg?(<img src={qrImg} alt="QR" style={{width:200,height:200,borderRadius:12}}/>)
+            :isLoading?(<div style={{textAlign:"center"}}>
+              <div style={{width:44,height:44,border:"3px solid #3eb8f0",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+              <div style={{color:"#3eb8f0",fontSize:13,marginTop:14,fontWeight:600}}>{status==='reconnecting'?'Reconectando...':'Generando QR...'}</div>
+            </div>)
+            :status==='error'?(<div style={{textAlign:"center",padding:20}}>
+              <div style={{fontSize:40,marginBottom:10}}>&#9888;&#65039;</div>
+              <div style={{color:"#ef4444",fontSize:13,fontWeight:600}}>{error||'Error'}</div>
+            </div>)
+            :(<div style={{textAlign:"center",padding:20}}>
+              <div style={{width:60,height:60,borderRadius:16,background:'rgba(62,184,240,0.1)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',border:'1.5px solid rgba(62,184,240,0.2)'}}>
+                <IcQr s={28} c="rgba(62,184,240,0.5)"/></div>
+              <div style={{color:"rgba(255,255,255,0.35)",fontSize:13}}>Haz clic en "Generar QR"</div>
+            </div>)}
+          </div>
+          <div className="wa-btn-row">
+            {canGenerate&&<button className="btn-cyan" onClick={generateQR} style={{padding:"12px 28px"}}><IcQr s={16} c="#fff"/> Generar QR</button>}
+            {isWaiting&&<button className="btn-ghost" onClick={generateQR} style={{color:"#5dd0ff",borderColor:"rgba(62,184,240,0.3)"}}><IcRefresh s={14} c="#5dd0ff"/> Regenerar</button>}
+            {(isConnected||status==='error')&&<button className="btn-navy" onClick={reconnect} style={{padding:"12px 24px"}}><IcRefresh s={15} c="#5dd0ff"/> Reconectar</button>}
+            {isConnected&&<button className="btn-ghost" onClick={disconnect} style={{color:"#ef4444",borderColor:"rgba(239,68,68,0.2)",padding:"12px 24px"}}><IcUnlink s={14} c="#ef4444"/> Desvincular</button>}
+          </div>
+        </div>
+      </div>
+
+      {/* Inbox */}
+      {isConnected && (
+        <div className="card" style={{marginBottom:12}}>
+          <button onClick={()=>{setShowInbox(!showInbox);if(!showInbox)waApi('/messages/read','POST').then(()=>setUnread(0)).catch(()=>{});}} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'14px 22px',background:'none',border:'none',cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <IcMsg s={15} c="var(--cyan)"/>
+            <span style={{color:'var(--navy-mid)',fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',flex:1,textAlign:'left'}}>Mensajes</span>
+            {unread>0&&<span style={{background:'linear-gradient(135deg,#D4AF37,#F5D97E)',color:'#0B0F19',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:800}}>{unread}</span>}
+            <span style={{color:'var(--text-light)',fontSize:18,transition:'transform 0.2s',transform:showInbox?'rotate(90deg)':'none'}}>&#9656;</span>
+          </button>
+          {showInbox&&<div style={{maxHeight:400,overflowY:'auto',padding:'0 0 8px'}}>
+            {inbox.length===0?(<div style={{textAlign:'center',padding:'32px 20px'}}>
+              <IcMsg s={32} c="rgba(62,184,240,0.2)"/>
+              <p style={{color:'var(--text-light)',fontSize:13,marginTop:10}}>Esperando mensajes...</p>
+            </div>)
+            :inbox.map((m,i)=>{
+              const time = new Date(m.timestamp).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+              const isBotMsg = m.isBot;
+              return (
+                <div key={m.id||i} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 22px',
+                  borderBottom:'1px solid var(--border)',
+                  background:isBotMsg?'rgba(34,197,94,0.02)':i<unread?'rgba(62,184,240,0.02)':'transparent'}}>
+                  <div style={{width:36,height:36,borderRadius:10,
+                    background:isBotMsg?'rgba(34,197,94,0.08)':'rgba(0,0,0,0.03)',
+                    display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
+                    border:isBotMsg?'1.5px solid rgba(34,197,94,0.2)':'1.5px solid var(--border)',
+                    fontSize:isBotMsg?12:14,fontWeight:700,color:isBotMsg?'#22c55e':'var(--text-light)'}}>
+                    {isBotMsg?<img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:24,height:24,objectFit:'contain'}}/>:(m.pushName||'?')[0].toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                      <span style={{color:isBotMsg?'#22c55e':'var(--text)',fontSize:13,fontWeight:700}}>{isBotMsg?'Agente IA':(m.pushName||m.from)}</span>
+                      <span style={{color:'var(--text-light)',fontSize:11,marginLeft:'auto',fontFamily:"'JetBrains Mono',monospace"}}>{time}</span>
+                    </div>
+                    <div style={{color:isBotMsg?'#15803d':'var(--text-secondary)',fontSize:13,lineHeight:1.5,wordBreak:'break-word'}}>{m.text}</div>
+                    {!isBotMsg&&<div style={{color:'var(--text-light)',fontSize:11,marginTop:3,fontFamily:"'JetBrains Mono',monospace"}}>{m.from}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>}
+        </div>
+      )}
+
+      {/* Logs */}
+      <div className="card">
+        <button onClick={()=>setShowLogs(!showLogs)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'14px 22px',background:'none',border:'none',cursor:'pointer',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+          <IcTerminal s={15} c="var(--text-secondary)"/>
+          <span style={{color:'var(--text-secondary)',fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',flex:1,textAlign:'left'}}>Actividad ({logs.length})</span>
+          <span style={{color:'var(--text-light)',fontSize:18,transform:showLogs?'rotate(90deg)':'none'}}>&#9656;</span>
+        </button>
+        {showLogs&&<div style={{maxHeight:240,overflowY:'auto',padding:'0 22px 14px'}}>
+          {logs.map((l,i)=>(<div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:12}}>
+            <span style={{color:'var(--text-light)',fontSize:11,fontFamily:"'JetBrains Mono',monospace",minWidth:60}}>{l.t}</span>
+            <span style={{color:l.type==='success'?'#22c55e':l.type==='error'?'#ef4444':'var(--text-secondary)'}}>{l.msg}</span>
+          </div>))}
+        </div>}
+      </div>
+    </div>
+  );
+};
+
+// ─── TABS CONFIG ──
+const TABS = [
+  {id:"creds",label:"Credenciales",Icon:IcKey},
+  {id:"tpl",label:"Plantilla",Icon:IcFile},
+  {id:"prods",label:"Productos",Icon:IcBox},
+  {id:"seg",label:"Seguimientos",Icon:IcBell},
+  {id:"qr",label:"Conectar WhatsApp",Icon:IcQr},
+];
+
+// ─── BOT DETAIL ──
+const BotDetail = ({bot, onBack, onUpdate}) => {
+  const [tab, setTab] = useState("creds");
+  const [editName, setEditName] = useState(false);
+  const [name, setName] = useState(bot.name);
+  const upd = c => onUpdate(bot.id, c);
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+        <button onClick={onBack} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+          <IcArrow s={16} c="var(--text)"/> Volver
+        </button>
+      </div>
+      <div className="navy navy-wave" style={{padding:"22px 24px",marginBottom:24,position:"relative",borderRadius:"var(--radius-lg)"}}>
+        <CardDeco/>
+        <div style={{display:"flex",alignItems:"center",gap:14,position:"relative",zIndex:1}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(62,184,240,0.15)",border:"1.5px solid rgba(62,184,240,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:36,height:36,objectFit:'contain'}}/></div>
+          <div style={{flex:1}}>
+            {editName
+              ?<input autoFocus value={name} onChange={e=>setName(e.target.value)} onBlur={()=>{setEditName(false);upd({name});}} onKeyDown={e=>e.key==="Enter"&&setEditName(false)}
+                style={{background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:10,padding:"6px 12px",color:"#fff",fontSize:16,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none"}}/>
+              :<div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{color:"#fff",fontSize:17,fontWeight:700}}>{name}</span>
+                <button onClick={()=>setEditName(true)} style={{background:"none",border:"none",cursor:"pointer"}}><IcEdit s={13} c="rgba(255,255,255,0.4)"/></button>
+              </div>
+            }
+            <p style={{color:"rgba(255,255,255,0.4)",fontSize:12,marginTop:2}}>Modelo: {bot.model || 'gpt-5.1'}</p>
+          </div>
+          <StatusDot active={bot.active}/>
+        </div>
+      </div>
+      <div style={{background:"var(--bg-card)",border:"1px solid var(--border)",padding:"4px 8px",marginBottom:20,display:"flex",gap:2,overflowX:"auto",borderRadius:"var(--radius-lg)"}}>
+        {TABS.map(t=>(<button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
+          <t.Icon s={14} c={tab===t.id?"var(--cyan-dark)":"var(--text-secondary)"}/> {t.label}
+        </button>))}
+      </div>
+      <div>
+        {tab==="creds"&&<TabCreds bot={bot} onUpdate={upd}/>}
+        {tab==="tpl"&&<TabPlantilla bot={bot} onUpdate={upd}/>}
+        {tab==="prods"&&<TabProductos bot={bot} onUpdate={upd}/>}
+        {tab==="seg"&&<TabSeguimientos bot={bot} onUpdate={upd}/>}
+        {tab==="qr"&&<TabQR bot={bot} onUpdate={upd}/>}
+      </div>
+    </div>
+  );
+};
+
+// ─── PAGE: DASHBOARD ──
+const PageDashboard = ({bots, user}) => (
+  <div style={{animation:"fadeIn 0.3s ease"}}>
+    <div className="stats">
+      {[
+        {label:"Agentes activos",value:bots.filter(b=>b.active).length,color:"var(--cyan)",bg:"rgba(62,184,240,0.08)",Icon:IcMsg},
+        {label:"Productos",value:bots.reduce((a,b)=>a+b.products.length,0),color:"var(--success)",bg:"rgba(34,197,94,0.08)",Icon:IcBox},
+        {label:`Limite de agentes: ${user?.max_bots||1}`,value:bots.length,color:"var(--warn)",bg:"rgba(245,158,11,0.08)",Icon:IcZap},
+      ].map(s=>(
+        <div key={s.label} className="stat-card">
+          <div className="stat-icon" style={{background:s.bg}}><s.Icon s={20} c={s.color}/></div>
+          <div className="stat-value" style={{color:s.color}}>{s.value}</div>
+          <div className="stat-label">{s.label}</div>
+        </div>
+      ))}
+    </div>
+
+    <div className="card">
+      <div className="card-header">
+        <IcMsg s={18} c="var(--cyan)"/>
+        <span style={{fontWeight:700,fontSize:14}}>Mis Agentes</span>
+      </div>
+      {bots.length===0?(
+        <div className="card-body" style={{textAlign:"center",padding:48}}>
+          <img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:64,height:64,objectFit:'contain',marginBottom:12}}/>
+          <p style={{color:"var(--text-secondary)",marginBottom:4}}>No tienes agentes configurados aun.</p>
+        </div>
+      ):(
+        <div>
+          {bots.map(bot=>(
+            <div key={bot.id} className="table-row">
+              <div style={{width:42,height:42,borderRadius:12,background:bot.active?"rgba(62,184,240,0.08)":"rgba(0,0,0,0.03)",border:bot.active?"1.5px solid rgba(62,184,240,0.2)":"1.5px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:30,height:30,objectFit:'contain'}}/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:14}}>{bot.name}</div>
+                <div style={{color:"var(--text-secondary)",fontSize:12,marginTop:2}}>{bot.products.length} productos | {bot.model||'gpt-5.1'}</div>
+              </div>
+              <StatusDot active={bot.active}/>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ─── PAGE: SOPORTE ──
+const PageSoporte = () => (
+  <div style={{animation:"fadeIn 0.3s ease"}}>
+    <div className="card">
+      <div className="card-body" style={{textAlign:"center",padding:"60px 20px"}}>
+        <div style={{width:64,height:64,borderRadius:20,background:"rgba(62,184,240,0.08)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:"1.5px solid rgba(62,184,240,0.15)"}}>
+          <IcHelp s={28} c="var(--cyan)"/>
+        </div>
+        <h3 style={{fontSize:18,fontWeight:700,marginBottom:8}}>Centro de Soporte</h3>
+        <p style={{color:"var(--text-secondary)",fontSize:14,maxWidth:400,margin:"0 auto 24px",lineHeight:1.7}}>
+          Si necesitas ayuda con tu agente o tienes alguna pregunta, contacta al administrador del sistema.
+        </p>
+        <div className="sec-card" style={{maxWidth:400,margin:"0 auto",textAlign:"left"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+            <IcMsg s={16} c="var(--cyan)"/>
+            <span style={{fontWeight:600,fontSize:13}}>Escribe al soporte por WhatsApp</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <IcShield s={16} c="var(--success)"/>
+            <span style={{fontWeight:600,fontSize:13}}>Sistema seguro y encriptado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ─── PAGE: CONFIG ──
+// ─── PAGE: VENTAS CONFIRMADAS ──
+const PageVentas = () => {
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterProduct, setFilterProduct] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  const loadSales = async () => {
+    try {
+      const res = await authFetch(API + '/sales');
+      const data = await res.json();
+      setSales(data);
+    } catch(e) { console.error('Error cargando ventas:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadSales(); }, []);
+
+  const deleteSale = async (id) => {
+    if (!confirm('Eliminar este registro de venta?')) return;
+    try {
+      await authFetch(API + '/sales/' + id, { method: 'DELETE' });
+      setSales(s => s.filter(x => x.id !== id));
+      if (selected?.id === id) setSelected(null);
+    } catch(e) { alert('Error: ' + e.message); }
+  };
+
+  const saveSale = async () => {
+    if (!editing) return;
+    try {
+      await authFetch(API + '/sales/' + editing.id, {
+        method: 'PUT',
+        body: JSON.stringify({
+          client_name: editing.client_name, product_name: editing.product_name,
+          amount: editing.amount, city: editing.city, status: editing.status, notes: editing.notes,
+        }),
+      });
+      setSales(s => s.map(x => x.id === editing.id ? {...x, ...editing} : x));
+      setEditing(null);
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch(e) { alert('Error: ' + e.message); }
+  };
+
+  // Filtrar
+  const products = [...new Set(sales.map(s => s.product_name).filter(Boolean))];
+  const filtered = sales.filter(s => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (!(s.client_name||'').toLowerCase().includes(q) && !(s.phone||'').includes(q) && !(s.product_name||'').toLowerCase().includes(q)) return false;
+    }
+    if (filterProduct && s.product_name !== filterProduct) return false;
+    if (filterDate && s.created_at && !s.created_at.startsWith(filterDate)) return false;
+    return true;
+  });
+
+  if (loading) return <div style={{textAlign:'center',padding:60,color:'var(--text-secondary)'}}>Cargando ventas...</div>;
+
+  // Modal de edicion
+  if (editing) return (
+    <div style={{animation:'fadeIn 0.2s'}}>
+      <Toast show={saved}/>
+      <button onClick={() => setEditing(null)} style={{background:'transparent',border:'1.5px solid var(--border)',borderRadius:10,padding:'8px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:6,color:'var(--text)',fontWeight:600,fontSize:13,marginBottom:16,fontFamily:'inherit'}}>
+        <IcArrow s={16}/> Volver
+      </button>
+      <div className="card">
+        <div className="card-header"><IcEdit s={16} c="var(--gold)"/><span style={{fontWeight:700,fontSize:14}}>Editar venta</span></div>
+        <div className="card-body">
+          <div className="grid-2" style={{marginBottom:14}}>
+            <div><label className="lbl">Cliente</label><input className="inp" value={editing.client_name||''} onChange={e=>setEditing({...editing,client_name:e.target.value})}/></div>
+            <div><label className="lbl">Producto</label><input className="inp" value={editing.product_name||''} onChange={e=>setEditing({...editing,product_name:e.target.value})}/></div>
+          </div>
+          <div className="grid-2" style={{marginBottom:14}}>
+            <div><label className="lbl">Monto</label><input className="inp" value={editing.amount||''} onChange={e=>setEditing({...editing,amount:e.target.value})}/></div>
+            <div><label className="lbl">Ciudad</label><input className="inp" value={editing.city||''} onChange={e=>setEditing({...editing,city:e.target.value})}/></div>
+          </div>
+          <div className="grid-2" style={{marginBottom:14}}>
+            <div><label className="lbl">Estado</label>
+              <select className="inp" value={editing.status||'confirmada'} onChange={e=>setEditing({...editing,status:e.target.value})}>
+                <option value="confirmada">Confirmada</option>
+                <option value="enviada">Enviada</option>
+                <option value="entregada">Entregada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+            <div><label className="lbl">Telefono</label><input className="inp" value={editing.phone||''} disabled style={{opacity:0.6}}/></div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label className="lbl">Notas</label>
+            <textarea className="inp ta" rows={3} value={editing.notes||''} onChange={e=>setEditing({...editing,notes:e.target.value})} placeholder="Notas adicionales..."/>
+          </div>
+          <button className="btn-cyan" onClick={saveSale} style={{width:'100%',justifyContent:'center',padding:13}}>
+            <IcCheck s={18} c="#fff"/> Guardar cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Detalle
+  if (selected) return (
+    <div style={{animation:'fadeIn 0.2s'}}>
+      <button onClick={() => setSelected(null)} style={{background:'transparent',border:'1.5px solid var(--border)',borderRadius:10,padding:'8px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:6,color:'var(--text)',fontWeight:600,fontSize:13,marginBottom:16,fontFamily:'inherit'}}>
+        <IcArrow s={16}/> Volver
+      </button>
+      <div className="navy navy-wave" style={{padding:24,marginBottom:16,borderRadius:'var(--radius-lg)',position:'relative'}}>
+        <CardDeco/>
+        <div style={{position:'relative',zIndex:1}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+            <div style={{width:48,height:48,borderRadius:14,background:'rgba(34,197,94,0.15)',border:'1.5px solid rgba(34,197,94,0.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <IcCheck s={22} c="#22c55e"/>
+            </div>
+            <div>
+              <h3 style={{color:'#fff',fontSize:17,fontWeight:700}}>{selected.client_name || 'Sin nombre'}</h3>
+              <p style={{color:'rgba(255,255,255,0.5)',fontSize:12}}>+{selected.phone}</p>
+            </div>
+            <span style={{marginLeft:'auto',padding:'4px 12px',borderRadius:20,fontSize:11,fontWeight:700,
+              background:selected.status==='confirmada'?'rgba(34,197,94,0.15)':selected.status==='cancelada'?'rgba(239,68,68,0.15)':'rgba(245,158,11,0.15)',
+              color:selected.status==='confirmada'?'#22c55e':selected.status==='cancelada'?'#ef4444':'#f59e0b',
+              border:`1px solid ${selected.status==='confirmada'?'rgba(34,197,94,0.3)':selected.status==='cancelada'?'rgba(239,68,68,0.3)':'rgba(245,158,11,0.3)'}`}}>
+              {selected.status || 'confirmada'}
+            </span>
+          </div>
+        </div>
+      </div>
+      {/* Mensaje del reporte — fuente de verdad */}
+      {selected.report_text && (
+        <div className="sec-card" style={{background:'rgba(212,175,55,0.04)',border:'1.5px solid rgba(212,175,55,0.15)',marginBottom:16}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span style={{fontWeight:700,fontSize:13,color:'var(--gold)'}}>Mensaje enviado al numero de reporte</span>
+          </div>
+          <div style={{background:'var(--bg-main)',border:'1px solid var(--border)',borderRadius:12,padding:16}}>
+            <p style={{fontSize:13,color:'var(--text)',whiteSpace:'pre-wrap',lineHeight:1.7}}>{selected.report_text}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Datos extraidos */}
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-header"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span style={{fontWeight:700,fontSize:14}}>Datos de la venta</span></div>
+        <div className="card-body">
+          <div className="grid-2" style={{marginBottom:12}}>
+            <div><span className="lbl">Cliente</span><p style={{fontWeight:600,fontSize:14}}>{selected.client_name||'—'}</p></div>
+            <div><span className="lbl">Telefono</span><p style={{fontWeight:600,fontSize:14}}>+{selected.phone||'—'}</p></div>
+          </div>
+          <div className="grid-2" style={{marginBottom:12}}>
+            <div><span className="lbl">Producto</span><p style={{fontWeight:600,fontSize:14}}>{selected.product_name||'—'}</p></div>
+            <div><span className="lbl">Monto</span><p style={{fontWeight:600,fontSize:14}}>{selected.amount ? `${selected.currency||'BOB'} ${selected.amount}` : '—'}</p></div>
+          </div>
+          <div className="grid-2" style={{marginBottom:12}}>
+            <div><span className="lbl">Ciudad</span><p style={{fontWeight:600,fontSize:14}}>{selected.city||'—'}</p></div>
+            <div><span className="lbl">Agente</span><p style={{fontWeight:600,fontSize:14}}>{selected.bot_name||'—'}</p></div>
+          </div>
+          <div className="grid-2" style={{marginBottom:12}}>
+            <div><span className="lbl">Fecha</span><p style={{fontWeight:600,fontSize:14}}>{selected.created_at ? new Date(selected.created_at).toLocaleString('es') : '—'}</p></div>
+            <div><span className="lbl">Ubicacion</span>
+              {selected.latitude && selected.longitude
+                ? <a href={`https://www.google.com/maps?q=${selected.latitude},${selected.longitude}`} target="_blank" rel="noopener" style={{color:'var(--cyan)',fontSize:13,fontWeight:600}}>Ver en mapa</a>
+                : <p style={{fontWeight:600,fontSize:14}}>—</p>
+              }
+            </div>
+          </div>
+          {selected.notes && <div><span className="lbl">Notas</span><p style={{fontWeight:500,fontSize:13,color:'var(--text-secondary)'}}>{selected.notes}</p></div>}
+        </div>
+      </div>
+      <div style={{display:'flex',gap:10,marginTop:16}}>
+        <button className="btn-cyan" onClick={()=>{setEditing({...selected});setSelected(null)}} style={{flex:1,justifyContent:'center'}}><IcEdit s={16} c="#fff"/> Editar</button>
+        <button className="btn-ghost" onClick={()=>deleteSale(selected.id)} style={{color:'var(--danger)',borderColor:'rgba(239,68,68,0.25)'}}><IcTrash s={16} c="#ef4444"/> Eliminar</button>
+      </div>
+    </div>
+  );
+
+  // Lista principal
+  return (
+    <div style={{animation:'fadeIn 0.2s'}}>
+      <Toast show={saved}/>
+      {/* Buscador y filtros */}
+      <div className="sec-card" style={{marginBottom:16}}>
+        <div style={{marginBottom:12}}>
+          <input className="inp" placeholder="Buscar por nombre, telefono o producto..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:10}}/>
+        </div>
+        <div className="grid-2">
+          <div>
+            <label className="lbl">Filtrar por producto</label>
+            <select className="inp" value={filterProduct} onChange={e=>setFilterProduct(e.target.value)}>
+              <option value="">Todos</option>
+              {products.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="lbl">Filtrar por fecha</label>
+            <input type="date" className="inp" value={filterDate} onChange={e=>setFilterDate(e.target.value)}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="stats" style={{marginBottom:16}}>
+        <div className="stat-card">
+          <div className="stat-icon" style={{background:'rgba(34,197,94,0.08)'}}><IcCheck s={20} c="var(--success)"/></div>
+          <div className="stat-value" style={{color:'var(--success)'}}>{sales.length}</div>
+          <div className="stat-label">Total ventas</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{background:'rgba(62,184,240,0.08)'}}><IcDollar s={20} c="var(--cyan)"/></div>
+          <div className="stat-value" style={{color:'var(--cyan)'}}>{filtered.length}</div>
+          <div className="stat-label">Mostrando</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{background:'rgba(212,175,55,0.08)'}}><IcStar s={20} c="var(--gold)"/></div>
+          <div className="stat-value" style={{color:'var(--gold)'}}>{sales.filter(s=>s.status==='confirmada').length}</div>
+          <div className="stat-label">Confirmadas</div>
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className="card">
+        <div className="card-header">
+          <IcStar s={16} c="var(--gold)"/>
+          <span style={{fontWeight:700,fontSize:14}}>{filtered.length} venta(s)</span>
+        </div>
+        {filtered.length === 0 ? (
+          <div className="card-body" style={{textAlign:'center',padding:48}}>
+            <IcStar s={40} c="rgba(212,175,55,0.2)"/>
+            <p style={{color:'var(--text-secondary)',marginTop:12,fontSize:14}}>
+              {sales.length === 0 ? 'Aun no hay ventas registradas. Las ventas apareceran aqui cuando tu agente confirme una venta.' : 'No se encontraron ventas con esos filtros.'}
+            </p>
+          </div>
+        ) : filtered.map(s => (
+          <div key={s.id} className="table-row" onClick={()=>setSelected(s)}>
+            <div style={{width:40,height:40,borderRadius:12,background:'rgba(34,197,94,0.08)',border:'1.5px solid rgba(34,197,94,0.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <IcCheck s={18} c="#22c55e"/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13}}>{s.client_name || 'Sin nombre'} <span style={{fontWeight:400,color:'var(--text-secondary)',fontSize:12}}>+{s.phone}</span></div>
+              <div style={{color:'var(--text-secondary)',fontSize:12,marginTop:2,display:'flex',gap:10,flexWrap:'wrap'}}>
+                {s.product_name && <span>{s.product_name}</span>}
+                {s.amount && <span>{s.currency||'BOB'} {s.amount}</span>}
+                <span>{s.created_at ? new Date(s.created_at).toLocaleDateString('es') : ''}</span>
+                {s.bot_name && <span>{s.bot_name}</span>}
+              </div>
+            </div>
+            <span style={{padding:'3px 10px',borderRadius:8,fontSize:10,fontWeight:700,
+              background:s.status==='confirmada'?'rgba(34,197,94,0.1)':s.status==='cancelada'?'rgba(239,68,68,0.1)':'rgba(245,158,11,0.1)',
+              color:s.status==='confirmada'?'#22c55e':s.status==='cancelada'?'#ef4444':'#f59e0b',
+              border:`1px solid ${s.status==='confirmada'?'rgba(34,197,94,0.2)':s.status==='cancelada'?'rgba(239,68,68,0.2)':'rgba(245,158,11,0.2)'}`}}>
+              {s.status||'confirmada'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── PAGE: CONFIG ──
+const PageConfig = ({user}) => (
+  <div style={{animation:"fadeIn 0.3s ease"}}>
+    <div className="card">
+      <div className="card-header">
+        <IcSettings s={18} c="var(--text-secondary)"/>
+        <span style={{fontWeight:700,fontSize:14}}>Informacion de la cuenta</span>
+      </div>
+      <div className="card-body">
+        <div className="grid-2-dash">
+          <div><span className="lbl">Usuario</span><p style={{fontWeight:600,fontSize:14}}>@{user?.username||'—'}</p></div>
+          <div><span className="lbl">Correo</span><p style={{fontWeight:600,fontSize:14}}>{user?.email||'—'}</p></div>
+          <div><span className="lbl">Nombre</span><p style={{fontWeight:600,fontSize:14}}>{user?.nombre} {user?.apellido}</p></div>
+          <div><span className="lbl">Ciudad</span><p style={{fontWeight:600,fontSize:14}}>{user?.ciudad||'—'}</p></div>
+          <div><span className="lbl">Limite de agentes</span><p style={{fontWeight:600,fontSize:14}}>{user?.max_bots||1}</p></div>
+          <div><span className="lbl">Fecha de registro</span><p style={{fontWeight:600,fontSize:14}}>{user?.created_at?new Date(user.created_at).toLocaleDateString('es'):'—'}</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ─── ROOT APP ──
+function App() {
+  const [bots, setBots] = useState([]);
+  const [selectedBot, setSelectedBot] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toast, setToast] = useState('');
+  const [toastError, setToastError] = useState(false);
+  const showToast = (msg, isError=false) => { setToast(msg); setToastError(isError); setTimeout(()=>{setToast('');setToastError(false);},2500); };
+
+  useEffect(() => {
+    Promise.all([
+      authFetch(API + '/auth/me').then(r => r.json()),
+      authFetch(API + '/bots').then(r => r.json()),
+    ]).then(([userData, botsData]) => {
+      setUser(userData);
+      setBots(Array.isArray(botsData) ? botsData : []);
+      setLoading(false);
+    }).catch(() => {
+      localStorage.clear();
+      window.location.href = '/login';
+    });
+  }, []);
+
+  const updateBot = async (id, changes) => {
+    const prevBots = bots;
+    const prevSelected = selectedBot;
+    setBots(prev => prev.map(b => b.id===id ? {...b,...changes} : b));
+    setSelectedBot(prev => prev?.id===id ? {...prev,...changes} : prev);
+    try {
+      const res = await authFetch(API + '/bots/' + id, { method: 'PUT', body: JSON.stringify(changes) });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data.error || 'Error al guardar');
+      }
+    } catch(e) {
+      setBots(prevBots);
+      setSelectedBot(prevSelected);
+      showToast('Error al guardar: ' + e.message, true);
+    }
+  };
+
+  const createBot = async () => {
+    try {
+      const res = await authFetch(API + '/bots', { method: 'POST', body: JSON.stringify({}) });
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      const newBot = data.bot;
+      setBots(p => [...p, newBot]);
+      setSelectedBot(newBot);
+      setPage('bot');
+    } catch(e) { alert('Error creando agente'); }
+  };
+
+  const deleteBot = async (id) => {
+    if (!confirm('Eliminar este agente?')) return;
+    try {
+      await authFetch(API + '/bots/' + id, { method: 'DELETE' });
+      setBots(p => p.filter(b => b.id !== id));
+      if (selectedBot?.id === id) { setSelectedBot(null); setPage('dashboard'); }
+    } catch(e) { alert('Error eliminando agente'); }
+  };
+
+  const logout = () => { localStorage.clear(); window.location.href = '/login'; };
+
+  const navigate = (pg) => {
+    setPage(pg);
+    if (pg !== 'bot') setSelectedBot(null);
+    setSidebarOpen(false);
+  };
+
+  const selectBot = (bot) => {
+    setSelectedBot(bot);
+    setPage('bot');
+    setSidebarOpen(false);
+  };
+
+  if (loading) return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{width:48,height:48,border:'3px solid var(--cyan)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite',margin:'0 auto'}}/>
+        <p style={{color:'var(--text-secondary)',marginTop:16,fontSize:14,fontWeight:600}}>Cargando...</p>
+      </div>
+    </div>
+  );
+
+  const NAV_ITEMS = [
+    {id:'dashboard',label:'Dashboard',icon:SIDEBAR_ICONS.dashboard},
+    {id:'bot',label:'Mi Agente',icon:SIDEBAR_ICONS.bot},
+    {id:'sales',label:'Ventas confirmadas',icon:SIDEBAR_ICONS.sales},
+    {id:'profile',label:'Mi Perfil',icon:SIDEBAR_ICONS.profile},
+    {id:'config',label:'Configuracion',icon:SIDEBAR_ICONS.settings},
+    {id:'support',label:'Soporte',icon:SIDEBAR_ICONS.support},
+  ];
+
+  const PAGE_TITLES = {
+    dashboard:'Dashboard',
+    bot: selectedBot ? selectedBot.name : 'Mi Agente',
+    sales:'Ventas confirmadas',
+    profile:'Mi Perfil',
+    config:'Configuracion',
+    support:'Soporte',
+  };
+
+  const PAGE_SUBS = {
+    dashboard:'Vista general de tu cuenta',
+    bot:'Gestiona tu agente',
+    sales:'Todas las ventas reportadas por tus agentes',
+    profile:'Informacion personal',
+    config:'Configuracion de la cuenta',
+    support:'Centro de ayuda',
+  };
+
+  return (
+    <div className="layout">
+      {/* Sidebar overlay (mobile) */}
+      <div className={`sidebar-overlay${sidebarOpen?' open':''}`} onClick={()=>setSidebarOpen(false)}/>
+
+      {/* Sidebar */}
+      <aside className={`sidebar${sidebarOpen?' open':''}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon" style={{background:'none',boxShadow:'none'}}>
+            <img src="/IMAGEN/logo%202.png" alt="Logo" style={{width:48,height:48,objectFit:'contain'}}/>
+          </div>
+          <div>
+            <div className="sidebar-brand-text">MI AGENTE</div>
+            <div className="sidebar-brand-sub">Panel de Usuario</div>
+          </div>
+        </div>
+        <nav className="sidebar-nav">
+          <div className="sidebar-section">Menu</div>
+          {NAV_ITEMS.map(item=>(
+            <button key={item.id} className={`sidebar-item${page===item.id?' active':''}`}
+              onClick={()=>{
+                if (item.id==='profile') { setShowProfile(true); setSidebarOpen(false); }
+                else if (item.id==='bot') {
+                  if (bots.length>0) selectBot(bots[0]);
+                  else { setPage('bot'); setSidebarOpen(false); }
+                }
+                else navigate(item.id);
+              }}>
+              <SvgIcon path={item.icon} size={18}/>
+              {item.label}
+              {item.id==='bot' && bots.length>0 && <span className="count">{bots.length}</span>}
+            </button>
+          ))}
+
+          {bots.length > 1 && (<>
+            <div className="sidebar-section">Mis Agentes</div>
+            {bots.map(bot=>(
+              <button key={bot.id} className={`sidebar-item${selectedBot?.id===bot.id&&page==='bot'?' active':''}`}
+                onClick={()=>selectBot(bot)}>
+                <img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:20,height:20,objectFit:'contain'}}/>
+                <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bot.name}</span>
+                <span style={{width:7,height:7,borderRadius:'50%',background:bot.active?'#22c55e':'#94a3b8',flexShrink:0}}/>
+              </button>
+            ))}
+          </>)}
+        </nav>
+        <div className="sidebar-footer">
+          <div className="sidebar-user" onClick={()=>{setShowProfile(true);setSidebarOpen(false);}}>
+            <div className="sidebar-avatar">
+              {user?.foto_perfil ? <img src={user.foto_perfil} alt=""/> : (user?.nombre||'U')[0].toUpperCase()}
+            </div>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{user?.nombre} {user?.apellido}</div>
+              <div className="sidebar-user-role">@{user?.username||'usuario'}</div>
+            </div>
+          </div>
+          {user?.role==='admin' && <button onClick={()=>window.location.href='/admin'} className="sidebar-item" style={{marginTop:8,color:'var(--cyan)'}}>
+            <SvgIcon path={SIDEBAR_ICONS.settings} size={18}/>
+            Panel Admin
+          </button>}
+          <button onClick={logout} className="sidebar-item" style={{marginTop:8,color:'rgba(239,68,68,0.7)'}}>
+            <SvgIcon path={SIDEBAR_ICONS.logout} size={18}/>
+            Cerrar sesion
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="main">
+        <header className="header">
+          <button className="hamburger" onClick={()=>setSidebarOpen(!sidebarOpen)}>
+            <SvgIcon path={SIDEBAR_ICONS.hamburger} size={22}/>
+          </button>
+          <div>
+            <div className="header-title">{PAGE_TITLES[page]||'Dashboard'}</div>
+            <div className="header-sub">{PAGE_SUBS[page]||''}</div>
+          </div>
+          <div className="header-spacer"/>
+          {page==='bot' && bots.length < (user?.max_bots||1) && (
+            <button className="btn-cyan" onClick={createBot} style={{padding:"8px 16px",fontSize:13}}>
+              <IcPlus s={14} c="#fff"/> Nuevo Agente
+            </button>
+          )}
+          {page==='bot' && selectedBot && bots.length > 0 && (
+            <button onClick={()=>deleteBot(selectedBot.id)} style={{background:"transparent",border:"1.5px solid rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+              <IcTrash s={14} c="#ef4444"/> Eliminar
+            </button>
+          )}
+        </header>
+
+        <div className="content">
+          {page==='dashboard' && <PageDashboard bots={bots} user={user}/>}
+          {page==='bot' && selectedBot && (
+            <BotDetail bot={bots.find(b=>b.id===selectedBot.id)||selectedBot} onBack={()=>navigate('dashboard')} onUpdate={updateBot}/>
+          )}
+          {page==='bot' && !selectedBot && (
+            <div style={{animation:"fadeIn 0.3s ease"}}>
+              <div className="card">
+                <div className="card-body" style={{textAlign:"center",padding:60}}>
+                  <img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:80,height:80,objectFit:'contain',marginBottom:16}}/>
+                  <p style={{color:"var(--text-secondary)",fontSize:15,marginBottom:20}}>No tienes agentes configurados aun.</p>
+                  {bots.length < (user?.max_bots||1) && (
+                    <button className="btn-cyan" onClick={createBot} style={{margin:"0 auto",padding:"12px 28px"}}>
+                      <IcPlus s={16} c="#fff"/> Crear mi primer agente
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {page==='sales' && <PageVentas/>}
+          {page==='config' && <PageConfig user={user}/>}
+          {page==='support' && <PageSoporte/>}
+        </div>
+
+        {/* Bottom Nav (mobile) */}
+        <div className="bottom-nav">
+          <div className="bottom-nav-inner">
+            {[
+              {id:'dashboard',label:'Dashboard',Icon:IcHome},
+              {id:'bot',label:'Agente',Icon:IcMsg},
+              {id:'sales',label:'Ventas',Icon:IcStar},
+              {id:'profile',label:'Perfil',Icon:IcUser},
+            ].map(item=>(
+              <button key={item.id} className={`bottom-nav-item${page===item.id?' active':''}`}
+                onClick={()=>{
+                  if (item.id==='profile') setShowProfile(true);
+                  else if (item.id==='bot') { if (bots.length>0) selectBot(bots[0]); else setPage('bot'); }
+                  else navigate(item.id);
+                }}>
+                <item.Icon s={20} c={page===item.id?"var(--gold)":"var(--text-light)"}/>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Modal */}
+      {showProfile && <ProfileModal user={user} onClose={()=>setShowProfile(false)} onUpdate={u=>setUser({...user,...u})}/>}
+      {toast && <div className="toast" style={{background:toastError?'linear-gradient(135deg,#ef4444,#dc2626)':'linear-gradient(135deg,#22c55e,#16a34a)'}}>{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

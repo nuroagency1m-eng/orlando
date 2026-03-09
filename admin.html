@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Panel Admin — MI AGENTE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+:root{--sidebar-w:260px;--header-h:64px;--bg:#0B0F19;--bg-sidebar:#0F172A;--bg-card:#111827;
+  --cyan:#06B6D4;--cyan-dark:#0891B2;--navy:#0F172A;--navy-mid:#1E293B;
+  --gold:#D4AF37;--gold-light:#F5D97E;--gold-dark:#B8962E;
+  --text:#F9FAFB;--text-secondary:#9CA3AF;--text-light:#6B7280;
+  --success:#22c55e;--danger:#ef4444;--warn:#f59e0b;--purple:#8b5cf6;
+  --border:rgba(55,65,81,0.5);--shadow:0 2px 8px rgba(0,0,0,0.3);
+  --radius:12px;--radius-lg:16px}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{height:100%}
+body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--bg-sidebar);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform 0.3s;
+  border-right:1px solid rgba(55,65,81,0.4)}
+.sidebar-brand{padding:20px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(55,65,81,0.4)}
+.sidebar-brand-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold-light));
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(212,175,55,0.3)}
+.sidebar-brand-text{color:#F9FAFB;font-size:16px;font-weight:700;letter-spacing:-0.02em}
+.sidebar-brand-sub{color:rgba(156,163,175,0.5);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em}
+
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.sidebar-section{color:rgba(156,163,175,0.4);font-size:10px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;padding:16px 12px 8px;margin-top:4px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  color:rgba(156,163,175,0.7);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;
+  margin-bottom:2px;border:none;background:none;width:100%;text-align:left;
+  font-family:'Sequel',system-ui,sans-serif}
+.sidebar-item:hover{background:rgba(30,41,59,0.8);color:#F9FAFB}
+.sidebar-item.active{background:rgba(79,70,229,0.15);color:#818CF8;border:1px solid rgba(79,70,229,0.2)}
+.sidebar-item .count{margin-left:auto;background:rgba(212,175,55,0.12);color:var(--gold);
+  padding:1px 8px;border-radius:6px;font-size:11px;font-weight:600}
+.sidebar-item.active .count{background:rgba(79,70,229,0.2);color:#818CF8}
+.sidebar-item .count.warn{background:rgba(245,158,11,0.15);color:#f59e0b}
+
+.sidebar-footer{padding:16px;border-top:1px solid rgba(55,65,81,0.4)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition:all 0.2s}
+.sidebar-user:hover{background:rgba(30,41,59,0.8)}
+.sidebar-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  display:flex;align-items:center;justify-content:center;color:#0B0F19;font-size:14px;font-weight:700}
+.sidebar-user-info{flex:1}
+.sidebar-user-name{color:#F9FAFB;font-size:13px;font-weight:600}
+.sidebar-user-role{color:rgba(156,163,175,0.5);font-size:11px}
+
+/* MAIN */
+.main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{height:var(--header-h);background:rgba(17,24,39,0.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:40}
+.header-title{font-size:18px;font-weight:700;color:var(--text)}
+.header-sub{font-size:13px;color:var(--text-secondary)}
+.header-spacer{flex:1}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:8px;color:var(--text)}
+
+/* CONTENT */
+.content{flex:1;padding:24px 28px;max-width:1200px;width:100%}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-body{padding:20px}
+
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px;box-shadow:var(--shadow);transition:border-color 0.2s}
+.stat-card:hover{border-color:rgba(212,175,55,0.3)}
+.stat-value{font-size:28px;font-weight:700;font-family:system-ui,monospace;line-height:1;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:6px}
+.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;margin-bottom:12px}
+
+/* TABLE */
+.table-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);
+  transition:background 0.15s}
+.table-row:last-child{border-bottom:none}
+.table-row:hover{background:rgba(212,175,55,0.03)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;
+  font-size:11px;font-weight:600;letter-spacing:0.02em}
+.badge-pending{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2)}
+.badge-active{background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.2)}
+.badge-suspended{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.badge-blocked{background:rgba(107,114,128,0.15);color:#9CA3AF;border:1px solid rgba(107,114,128,0.2)}
+.badge-admin{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;
+  font-family:'Sequel',system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer;
+  border:none;transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0B0F19}
+.btn-primary:hover{box-shadow:0 4px 16px rgba(212,175,55,0.3);transform:translateY(-1px)}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{opacity:0.9}
+.btn-danger{background:transparent;color:var(--danger);border:1.5px solid rgba(239,68,68,0.25)}
+.btn-danger:hover{background:rgba(239,68,68,0.08)}
+.btn-warn{background:transparent;color:var(--warn);border:1.5px solid rgba(245,158,11,0.25)}
+.btn-warn:hover{background:rgba(245,158,11,0.08)}
+.btn-outline{background:transparent;color:var(--text-secondary);border:1.5px solid var(--border)}
+.btn-outline:hover{background:rgba(30,41,59,0.5);border-color:rgba(156,163,175,0.3);color:var(--text)}
+
+/* AVATAR */
+.avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s}
+.modal{background:#111827;border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;max-width:560px;width:92%;
+  max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;justify-content:space-between;position:sticky;top:0;background:#111827;z-index:1}
+.modal-body{padding:24px}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text-light);font-size:20px;
+  width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:rgba(30,41,59,0.8)}
+
+/* FORM IN MODAL */
+.field{margin-bottom:16px}
+.field-label{display:block;font-size:11px;font-weight:500;color:var(--text-secondary);
+  letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px}
+.field-value{font-size:14px;font-weight:600;color:var(--text)}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field-grid-1{display:grid;grid-template-columns:1fr;gap:14px}
+
+.inp{width:100%;background:#1F2937;border:1.5px solid #374151;border-radius:10px;
+  padding:10px 14px;font-family:'Sequel',system-ui,monospace;font-size:13px;font-weight:400;
+  color:var(--text);outline:none;transition:all 0.2s;box-sizing:border-box}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,0.12)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:200;
+  background:linear-gradient(135deg,var(--gold),var(--gold-light));
+  color:#0B0F19;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;
+  box-shadow:0 8px 24px rgba(212,175,55,0.3);animation:fadeIn 0.2s}
+
+/* SECTION DIVIDER */
+.section-title{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:0.08em;
+  text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-dot{width:6px;height:6px;border-radius:3px;display:inline-block}
+
+/* MOBILE BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;
+  background:rgba(11,15,25,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(212,175,55,0.15);z-index:50;
+  padding:8px 0 env(safe-area-inset-bottom,8px)}
+.bottom-nav-inner{display:flex;justify-content:space-around;max-width:500px;margin:0 auto;align-items:center}
+.bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;
+  border:none;background:none;cursor:pointer;color:var(--text-light);font-size:10px;
+  font-weight:600;font-family:'Sequel',system-ui,sans-serif;transition:all 0.2s;
+  border-radius:10px;min-width:60px}
+.bottom-nav-item.active{color:var(--gold);background:rgba(212,175,55,0.08)}
+.bottom-nav-item .nav-dot{width:5px;height:5px;border-radius:3px;background:var(--warn);display:none}
+.bottom-nav-item .nav-dot.show{display:block}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,175,55,0.25);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(212,175,55,0.4)}
+
+/* MOBILE OVERLAY */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:45}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .main{margin-left:0}
+  .hamburger{display:flex}
+  .bottom-nav{display:block}
+  .content{padding:16px;padding-bottom:90px}
+  .stats{grid-template-columns:1fr 1fr}
+  .header{padding:0 16px}
+  .header-title{font-size:16px}
+  .field-grid{grid-template-columns:1fr}
+
+  /* Table rows → mobile cards */
+  .table-row{flex-direction:column;align-items:flex-start;gap:10px;padding:16px;
+    border-radius:12px;margin-bottom:8px;background:rgba(15,23,42,0.4);
+    border:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .table-row:hover{background:rgba(15,23,42,0.6)}
+  .table-row .avatar{width:44px;height:44px}
+  .table-row .row-actions{width:100%;display:flex;gap:6px}
+  .table-row .row-actions .btn{flex:1;justify-content:center;padding:10px 8px;min-height:42px}
+
+  /* Buttons touch friendly */
+  .btn{padding:10px 16px;font-size:13px;min-height:42px;border-radius:10px}
+
+  /* Modal mobile */
+  .modal{width:96%;max-height:90vh;border-radius:16px}
+  .modal-header{padding:16px 18px}
+  .modal-body{padding:18px}
+
+  /* Toast above bottom nav */
+  .toast{bottom:80px;right:16px;left:16px;text-align:center;justify-content:center}
+
+  /* Stat cards compact */
+  .stat-card{padding:14px}
+  .stat-value{font-size:24px}
+  .stat-label{font-size:11px}
+  .stat-icon{width:34px;height:34px;margin-bottom:8px}
+}
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr}
+  .content{padding:12px;padding-bottom:90px}
+  .header{height:56px}
+  .header-title{font-size:15px}
+  .card-header{padding:12px 14px}
+  .card-header span{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const API = window.location.origin + '/api';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/login';
+
+const api = async (path, method='GET', body) => {
+  const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { localStorage.clear(); window.location.href = '/login'; return; }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+};
+
+// SVG Icons
+const Icon = ({name, size=18, color='currentColor'}) => {
+  const paths = {
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+    block: '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+    bot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>',
+    approval: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M17 11l2 2 4-4"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    menu: '<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+    pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+    home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+    dangerouslySetInnerHTML={{__html: paths[name] || ''}} />;
+};
+
+const StatusBadge = ({status}) => {
+  const map = { pendiente:'badge-pending', activo:'badge-active', suspendido:'badge-suspended', bloqueado:'badge-blocked' };
+  const labels = { pendiente:'Pendiente', activo:'Activo', suspendido:'Suspendido', bloqueado:'Bloqueado' };
+  return <span className={`badge ${map[status]||'badge-pending'}`}>{labels[status]||status}</span>;
+};
+
+const Toast = ({show,msg}) => show ? <div className="toast">{msg}</div> : null;
+
+// ─── USER DETAIL MODAL ──
+const UserModal = ({user, onClose, onUpdate}) => {
+  const [maxBots, setMaxBots] = useState(user.max_bots);
+  const [toast, setToast] = useState(false);
+  const [showFactura, setShowFactura] = useState(false);
+
+  const updateStatus = async (status) => {
+    try {
+      await api(`/admin/users/${user.id}/status`, 'PUT', { status });
+      onUpdate(); onClose();
+    } catch(e) { alert('Error: ' + e.message); }
+  };
+  const saveMaxBots = async () => {
+    try {
+      await api(`/admin/users/${user.id}/max-bots`, 'PUT', { max_bots: maxBots });
+      setToast(true); setTimeout(()=>setToast(false),1500);
+      onUpdate();
+    } catch(e) { alert('Error: ' + e.message); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontWeight:700,fontSize:16}}>Detalle de Usuario</span>
+            <StatusBadge status={user.status}/>
+          </div>
+          <button className="modal-close" onClick={onClose}>x</button>
+        </div>
+        <div className="modal-body">
+          <Toast show={toast} msg="Guardado"/>
+
+          {/* Profile header */}
+          <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:24,padding:16,
+            background:'rgba(15,23,42,0.6)',borderRadius:12,border:'1px solid rgba(55,65,81,0.5)'}}>
+            <div className="avatar" style={{width:52,height:52,borderRadius:14,
+              background:user.foto_perfil?`url(${user.foto_perfil}) center/cover`:'linear-gradient(135deg,var(--cyan),var(--cyan-dark))',
+              color:'#fff',fontSize:20}}>
+              {!user.foto_perfil && (user.nombre||'?')[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{fontWeight:700,fontSize:15}}>{user.nombre} {user.apellido}</div>
+              <div style={{color:'var(--text-secondary)',fontSize:13}}>@{user.username || '---'} &middot; {user.email}</div>
+            </div>
+          </div>
+
+          {/* Datos personales */}
+          <div style={{marginBottom:20}}>
+            <div className="section-title"><span className="section-dot" style={{background:'var(--cyan)'}}></span>Datos Personales</div>
+            <div className="field-grid">
+              {[['Nombre',user.nombre],['Apellido',user.apellido],['Usuario',user.username||'---'],['Correo',user.email],
+                ['Ciudad',user.ciudad],['F. Nacimiento',user.fecha_nacimiento],
+                ['Registro',new Date(user.created_at).toLocaleDateString('es')]
+              ].map(([l,v])=>(
+                <div className="field" key={l} style={{marginBottom:8}}>
+                  <div className="field-label">{l}</div>
+                  <div className="field-value">{v || '---'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fase Global */}
+          <div style={{marginBottom:20}}>
+            <div className="section-title"><span className="section-dot" style={{background:'var(--success)'}}></span>Fase Global</div>
+            <div className="field-grid">
+              {[['Usuario Fase',user.usuario_fase],['Patrocinador',user.patrocinador_fase],['Rango',user.rango_fase]].map(([l,v])=>(
+                <div className="field" key={l} style={{marginBottom:8}}>
+                  <div className="field-label">{l}</div>
+                  <div className="field-value">{v || '---'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Foto de Factura */}
+          <div style={{marginBottom:24}}>
+            <div className="section-title"><span className="section-dot" style={{background:'var(--purple)'}}></span>Foto de Factura</div>
+            {user.foto_factura ? (
+              <div style={{border:'1.5px solid rgba(139,92,246,0.3)',borderRadius:14,padding:12,background:'rgba(139,92,246,0.04)'}}>
+                <img src={user.foto_factura} alt="Factura"
+                  style={{width:'100%',maxHeight:500,objectFit:'contain',borderRadius:10,
+                    border:'1px solid rgba(55,65,81,0.5)',background:'rgba(15,23,42,0.8)',cursor:'zoom-in',
+                    display:'block'}}
+                  onClick={()=>setShowFactura(true)}/>
+                <div style={{display:'flex',gap:8,marginTop:10,justifyContent:'center'}}>
+                  <button onClick={()=>setShowFactura(true)}
+                    style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',borderRadius:8,
+                      padding:'8px 16px',color:'#a78bfa',fontSize:12,fontWeight:600,cursor:'pointer',
+                      display:'flex',alignItems:'center',gap:6}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+                    Ver ampliado
+                  </button>
+                  <button onClick={()=>window.open(user.foto_factura,'_blank')}
+                    style={{background:'rgba(55,65,81,0.4)',border:'1px solid rgba(55,65,81,0.6)',borderRadius:8,
+                      padding:'8px 16px',color:'var(--text-secondary)',fontSize:12,fontWeight:600,cursor:'pointer',
+                      display:'flex',alignItems:'center',gap:6}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Abrir en nueva pestana
+                  </button>
+                </div>
+                {/* Lightbox overlay */}
+                {showFactura && (
+                  <div onClick={()=>setShowFactura(false)}
+                    style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',
+                      zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out',
+                      padding:20}}>
+                    <img src={user.foto_factura} alt="Factura completa"
+                      style={{maxWidth:'95%',maxHeight:'95vh',objectFit:'contain',borderRadius:12,
+                        boxShadow:'0 0 60px rgba(0,0,0,0.8)'}}
+                      onClick={e=>e.stopPropagation()}/>
+                    <button onClick={()=>setShowFactura(false)}
+                      style={{position:'fixed',top:20,right:20,background:'rgba(255,255,255,0.15)',
+                        border:'none',borderRadius:'50%',width:40,height:40,color:'#fff',fontSize:20,
+                        cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
+                        backdropFilter:'blur(8px)'}}>✕</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{padding:24,textAlign:'center',borderRadius:12,border:'1.5px dashed #fca5a5',background:'rgba(254,242,242,0.05)'}}>
+                <div style={{color:'var(--danger)',fontSize:13,fontWeight:600}}>No se subio foto de factura</div>
+                <div style={{color:'var(--text-light)',fontSize:11,marginTop:4}}>El usuario no adjunto comprobante</div>
+              </div>
+            )}
+          </div>
+
+          {/* Bot limit */}
+          <div style={{marginBottom:24}}>
+            <div className="section-title"><span className="section-dot" style={{background:'var(--warn)'}}></span>Configuracion</div>
+            <div style={{display:'flex',gap:16,alignItems:'flex-end'}}>
+              <div>
+                <div className="field-label">Agentes actuales</div>
+                <div className="field-value">{user.bot_count}</div>
+              </div>
+              <div>
+                <div className="field-label">Limite de agentes</div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <input type="number" className="inp" value={maxBots}
+                    onChange={e=>setMaxBots(parseInt(e.target.value)||1)}
+                    style={{width:70,textAlign:'center'}} min="1"/>
+                  <button className="btn btn-primary" onClick={saveMaxBots}>Guardar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:16,borderTop:'1px solid var(--border)'}}>
+            {user.status !== 'activo' && <button className="btn btn-success" onClick={()=>updateStatus('activo')}>Aprobar / Activar</button>}
+            {user.status !== 'suspendido' && <button className="btn btn-warn" onClick={()=>updateStatus('suspendido')}>Suspender</button>}
+            {user.status !== 'bloqueado' && <button className="btn btn-danger" onClick={()=>updateStatus('bloqueado')}>Bloquear</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN APP ──
+function AdminApp() {
+  const [page, setPage] = useState('dashboard');
+  const [users, setUsers] = useState([]);
+  const [bots, setBots] = useState([]);
+  const [me, setMe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [toast, setToast] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const load = async () => {
+    try {
+      const [u, b] = await Promise.all([api('/admin/users'), api('/admin/bots')]);
+      setUsers(u); setBots(b);
+    } catch(e) { console.error('[Admin] Error cargando datos:', e.message); }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    api('/auth/me').then(data => {
+      if (data.role !== 'admin') { window.location.href = '/panel'; return; }
+      setMe(data);
+    }).catch(() => { localStorage.clear(); window.location.href = '/login'; });
+    load();
+  }, []);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(''),2000); };
+  const logout = () => { localStorage.clear(); window.location.href = '/login'; };
+  const navigate = (p) => { setPage(p); setSidebarOpen(false); };
+
+  const updateUserStatus = async (id, status) => {
+    try {
+      await api(`/admin/users/${id}/status`, 'PUT', { status });
+      load(); showToast('Usuario actualizado');
+    } catch(e) { showToast('Error: ' + e.message); }
+  };
+  const deleteUser = async (id) => {
+    if (!confirm('Eliminar este usuario y todos sus agentes?')) return;
+    try {
+      await api(`/admin/users/${id}`, 'DELETE'); load(); showToast('Usuario eliminado');
+    } catch(e) { showToast('Error: ' + e.message); }
+  };
+  const toggleBot = async (id, active) => {
+    try {
+      await api(`/admin/bots/${id}`, 'PUT', { active: active ? 0 : 1 });
+      load(); showToast('Agente actualizado');
+    } catch(e) { showToast('Error: ' + e.message); }
+  };
+  const deleteBot = async (id) => {
+    if (!confirm('Eliminar este agente?')) return;
+    try {
+      await api(`/admin/bots/${id}`, 'DELETE'); load(); showToast('Agente eliminado');
+    } catch(e) { showToast('Error: ' + e.message); }
+  };
+
+  const pending = users.filter(u => u.status === 'pendiente');
+  const active = users.filter(u => u.status === 'activo');
+  const suspended = users.filter(u => u.status === 'suspendido');
+  const blocked = users.filter(u => u.status === 'bloqueado');
+
+  const filterByPage = () => {
+    if (page === 'pending') return pending;
+    if (page === 'active-users') return active;
+    if (page === 'suspended') return suspended;
+    if (page === 'blocked') return blocked;
+    if (page === 'approval') return pending;
+    return users;
+  };
+
+  const pageTitle = () => {
+    const map = {
+      dashboard:'Dashboard', users:'Todos los Usuarios', pending:'Usuarios Pendientes',
+      'active-users':'Usuarios Activos', suspended:'Usuarios Suspendidos',
+      blocked:'Usuarios Bloqueados', bots:'Agentes del Sistema', approval:'Aprobacion de Usuarios',
+      settings:'Configuraciones'
+    };
+    return map[page] || 'Dashboard';
+  };
+
+  // User list renderer
+  const renderUserList = (list) => (
+    <div className="card" style={{animation:'fadeIn 0.2s'}}>
+      <div className="card-header">
+        <Icon name="users" size={16} color="var(--text-secondary)"/>
+        <span style={{fontWeight:700,fontSize:14}}>{list.length} usuario(s)</span>
+      </div>
+      {list.length === 0 ? (
+        <div style={{padding:40,textAlign:'center',color:'var(--text-light)',fontSize:14}}>No hay usuarios</div>
+      ) : list.map(u => (
+        <div className="table-row" key={u.id}>
+          <div className="avatar" style={{
+            background:u.foto_perfil?`url(${u.foto_perfil}) center/cover`:'linear-gradient(135deg,var(--cyan),var(--cyan-dark))',
+            color:'#fff'}}>
+            {!u.foto_perfil && (u.nombre||'?')[0].toUpperCase()}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+              <span style={{fontWeight:700,fontSize:13}}>{u.nombre} {u.apellido}</span>
+              <StatusBadge status={u.status}/>
+              {u.role==='admin' && <span className="badge badge-admin">ADMIN</span>}
+            </div>
+            <div style={{color:'var(--text-secondary)',fontSize:12,display:'flex',gap:12,flexWrap:'wrap'}}>
+              <span>@{u.username||'---'}</span>
+              <span>{u.email}</span>
+              <span>Agentes: {u.bot_count}/{u.max_bots}</span>
+              {u.ciudad && <span>{u.ciudad}</span>}
+            </div>
+          </div>
+          {u.role !== 'admin' && (
+            <div className="row-actions" style={{display:'flex',gap:6,flexShrink:0,flexWrap:'wrap'}}>
+              {u.status === 'pendiente' && <button className="btn btn-success" onClick={()=>updateUserStatus(u.id,'activo')}>Aprobar</button>}
+              {u.status === 'activo' && <button className="btn btn-warn" onClick={()=>updateUserStatus(u.id,'suspendido')}>Suspender</button>}
+              {u.status === 'suspendido' && <button className="btn btn-success" onClick={()=>updateUserStatus(u.id,'activo')}>Activar</button>}
+              {u.status === 'bloqueado' && <button className="btn btn-success" onClick={()=>updateUserStatus(u.id,'activo')}>Desbloquear</button>}
+              <button className="btn btn-outline" onClick={()=>setSelected(u)}>Ver</button>
+              <button className="btn btn-danger" onClick={()=>deleteUser(u.id)}>X</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'var(--text-secondary)'}}>Cargando...</div>;
+
+  return (
+    <div className="layout">
+      <Toast show={!!toast} msg={toast}/>
+      {selected && <UserModal user={selected} onClose={()=>setSelected(null)} onUpdate={load}/>}
+
+      {/* Sidebar overlay mobile */}
+      <div className={`sidebar-overlay${sidebarOpen?' open':''}`} onClick={()=>setSidebarOpen(false)}/>
+
+      {/* SIDEBAR */}
+      <aside className={`sidebar${sidebarOpen?' open':''}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon" style={{background:'none',boxShadow:'none'}}>
+            <img src="/IMAGEN/logo%202.png" alt="Logo" style={{width:48,height:48,objectFit:'contain'}}/>
+          </div>
+          <div>
+            <div className="sidebar-brand-text">MI AGENTE</div>
+            <div className="sidebar-brand-sub">Administrador</div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="sidebar-section">General</div>
+          <button className={`sidebar-item${page==='dashboard'?' active':''}`} onClick={()=>navigate('dashboard')}>
+            <Icon name="home" size={18}/> Dashboard
+          </button>
+
+          <div className="sidebar-section">Usuarios</div>
+          <button className={`sidebar-item${page==='users'?' active':''}`} onClick={()=>navigate('users')}>
+            <Icon name="users" size={18}/> Todos
+            <span className="count">{users.filter(u=>u.role!=='admin').length}</span>
+          </button>
+          <button className={`sidebar-item${page==='pending'?' active':''}`} onClick={()=>navigate('pending')}>
+            <Icon name="clock" size={18}/> Pendientes
+            {pending.length > 0 && <span className="count warn">{pending.length}</span>}
+          </button>
+          <button className={`sidebar-item${page==='active-users'?' active':''}`} onClick={()=>navigate('active-users')}>
+            <Icon name="check" size={18}/> Activos
+            <span className="count">{active.length}</span>
+          </button>
+          <button className={`sidebar-item${page==='suspended'?' active':''}`} onClick={()=>navigate('suspended')}>
+            <Icon name="pause" size={18}/> Suspendidos
+            <span className="count">{suspended.length}</span>
+          </button>
+          <button className={`sidebar-item${page==='blocked'?' active':''}`} onClick={()=>navigate('blocked')}>
+            <Icon name="block" size={18}/> Bloqueados
+            <span className="count">{blocked.length}</span>
+          </button>
+
+          <div className="sidebar-section">Sistema</div>
+          <button className={`sidebar-item${page==='bots'?' active':''}`} onClick={()=>navigate('bots')}>
+            <Icon name="bot" size={18}/> Agentes del Sistema
+            <span className="count">{bots.length}</span>
+          </button>
+          <button className={`sidebar-item${page==='approval'?' active':''}`} onClick={()=>navigate('approval')}>
+            <Icon name="approval" size={18}/> Aprobacion
+            {pending.length > 0 && <span className="count warn">{pending.length}</span>}
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button onClick={()=>window.location.href='/panel'} style={{width:'100%',padding:'10px 14px',background:'rgba(62,184,240,0.1)',border:'1.5px solid rgba(62,184,240,0.25)',borderRadius:10,color:'var(--cyan)',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,marginBottom:10,fontFamily:'inherit'}}>
+            <Icon name="bot" size={16} color="var(--cyan)"/> Mis Agentes
+          </button>
+          <div className="sidebar-user" onClick={logout}>
+            <div className="sidebar-avatar">{me?.nombre?.[0] || 'A'}</div>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{me?.nombre || 'Admin'}</div>
+              <div className="sidebar-user-role">Administrador</div>
+            </div>
+            <Icon name="logout" size={16} color="rgba(255,255,255,0.3)"/>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN */}
+      <div className="main">
+        <header className="header">
+          <button className="hamburger" onClick={()=>setSidebarOpen(!sidebarOpen)}>
+            <Icon name="menu" size={22} color="var(--text)"/>
+          </button>
+          <div>
+            <div className="header-title">{pageTitle()}</div>
+          </div>
+          <div className="header-spacer"/>
+          {pending.length > 0 && page !== 'pending' && page !== 'approval' && (
+            <button className="btn btn-warn" onClick={()=>setPage('pending')}>
+              {pending.length} pendiente(s)
+            </button>
+          )}
+        </header>
+
+        <div className="content">
+          {/* DASHBOARD */}
+          {page === 'dashboard' && (
+            <div style={{animation:'fadeIn 0.2s'}}>
+              <div className="stats">
+                <div className="stat-card">
+                  <div className="stat-icon" style={{background:'rgba(62,184,240,0.1)'}}><Icon name="users" color="var(--cyan)"/></div>
+                  <div className="stat-value" style={{color:'var(--cyan)'}}>{users.filter(u=>u.role!=='admin').length}</div>
+                  <div className="stat-label">Total Usuarios</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{background:'rgba(245,158,11,0.1)'}}><Icon name="clock" color="var(--warn)"/></div>
+                  <div className="stat-value" style={{color:'var(--warn)'}}>{pending.length}</div>
+                  <div className="stat-label">Pendientes</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{background:'rgba(34,197,94,0.1)'}}><Icon name="check" color="var(--success)"/></div>
+                  <div className="stat-value" style={{color:'var(--success)'}}>{bots.filter(b=>b.active).length}</div>
+                  <div className="stat-label">Agentes Activos</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{background:'rgba(139,92,246,0.1)'}}><Icon name="bot" color="var(--purple)"/></div>
+                  <div className="stat-value" style={{color:'var(--purple)'}}>{bots.length}</div>
+                  <div className="stat-label">Total Agentes</div>
+                </div>
+              </div>
+
+              {/* Pending users quick view */}
+              {pending.length > 0 && (
+                <div style={{marginBottom:24}}>
+                  <h3 style={{fontSize:15,fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{width:8,height:8,borderRadius:4,background:'var(--warn)'}}></span>
+                    Usuarios Pendientes de Aprobacion
+                  </h3>
+                  {renderUserList(pending)}
+                </div>
+              )}
+
+              {/* Recent users */}
+              <h3 style={{fontSize:15,fontWeight:700,marginBottom:12}}>Usuarios Recientes</h3>
+              {renderUserList(users.filter(u=>u.role!=='admin').slice(0,5))}
+            </div>
+          )}
+
+          {/* USERS PAGES */}
+          {['users','pending','active-users','suspended','blocked','approval'].includes(page) && (
+            <div style={{animation:'fadeIn 0.2s'}}>
+              {renderUserList(page === 'users' ? users.filter(u=>u.role!=='admin') : filterByPage())}
+            </div>
+          )}
+
+          {/* BOTS */}
+          {page === 'bots' && (
+            <div className="card" style={{animation:'fadeIn 0.2s'}}>
+              <div className="card-header">
+                <Icon name="bot" size={16} color="var(--text-secondary)"/>
+                <span style={{fontWeight:700,fontSize:14}}>{bots.length} agente(s)</span>
+              </div>
+              {bots.length === 0 ? (
+                <div style={{padding:40,textAlign:'center',color:'var(--text-light)'}}>No hay agentes</div>
+              ) : bots.map(b => (
+                <div className="table-row" key={b.id}>
+                  <div className="avatar" style={{
+                    background:b.active?'rgba(62,184,240,0.12)':'rgba(55,65,81,0.5)',
+                    border:b.active?'1.5px solid rgba(62,184,240,0.3)':'1.5px solid transparent',
+                    display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <img src="/IMAGEN/logo%202.png" alt="Bot" style={{width:28,height:28,objectFit:'contain',opacity:b.active?1:0.5}}/>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+                      <span style={{fontWeight:700,fontSize:13}}>{b.name}</span>
+                      <span className={`badge ${b.active?'badge-active':'badge-blocked'}`}>
+                        {b.active?'Activo':'Inactivo'}
+                      </span>
+                      {b.status === 'suspended' && <span className="badge badge-suspended">Suspendido</span>}
+                    </div>
+                    <div style={{color:'var(--text-secondary)',fontSize:12,display:'flex',gap:12,flexWrap:'wrap'}}>
+                      <span>Dueno: {b.user_nombre} {b.user_apellido}</span>
+                      <span>Modelo: {b.model||'gpt-5.1'}</span>
+                      <span>WA: {b.wa_status==='connected'?b.wa_phone||'Conectado':'Desconectado'}</span>
+                    </div>
+                  </div>
+                  <div className="row-actions" style={{display:'flex',gap:6,flexShrink:0}}>
+                    <button className={`btn ${b.active?'btn-warn':'btn-success'}`} onClick={()=>toggleBot(b.id,b.active)}>
+                      {b.active?'Pausar':'Activar'}
+                    </button>
+                    <button className="btn btn-danger" onClick={()=>deleteBot(b.id)}>X</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {page === 'settings' && (
+            <div className="card" style={{animation:'fadeIn 0.2s'}}>
+              <div className="card-header">
+                <Icon name="settings" size={16} color="var(--text-secondary)"/>
+                <span style={{fontWeight:700,fontSize:14}}>Configuraciones</span>
+              </div>
+              <div className="card-body">
+                <p style={{color:'var(--text-secondary)',fontSize:14}}>Proximamente: configuraciones del sistema.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* BOTTOM NAV (mobile) */}
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
+          <button className={`bottom-nav-item${page==='dashboard'?' active':''}`} onClick={()=>navigate('dashboard')}>
+            <Icon name="home" size={20}/> Dashboard
+          </button>
+          <button className={`bottom-nav-item${page==='users'||page==='pending'||page==='active-users'?' active':''}`} onClick={()=>navigate('users')}>
+            <Icon name="users" size={20}/>
+            <span>Usuarios</span>
+            {pending.length > 0 && <span className="nav-dot show"></span>}
+          </button>
+          <button className={`bottom-nav-item${page==='approval'?' active':''}`} onClick={()=>navigate('approval')}>
+            <Icon name="approval" size={20}/>
+            <span>Aprobar</span>
+            {pending.length > 0 && <span className="nav-dot show"></span>}
+          </button>
+          <button className={`bottom-nav-item${page==='bots'?' active':''}`} onClick={()=>navigate('bots')}>
+            <Icon name="bot" size={20}/> Agentes
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AdminApp/>);
+</script>
+</body>
+</html>
