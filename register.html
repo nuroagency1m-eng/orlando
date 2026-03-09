@@ -31,6 +31,9 @@ body::after{content:'';position:fixed;width:500px;height:500px;border-radius:50%
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse-gold{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,0.3)}50%{box-shadow:0 0 0 8px rgba(212,175,55,0)}}
+@keyframes robotFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.robot-float{animation:robotFloat 3s ease-in-out infinite}
+
 
 .reg-container{position:relative;z-index:1;width:100%;max-width:540px;padding:20px;animation:fadeSlideUp 0.6s cubic-bezier(0.16,1,0.3,1)}
 
@@ -42,11 +45,9 @@ body::after{content:'';position:fixed;width:500px;height:500px;border-radius:50%
   background:radial-gradient(circle,rgba(212,175,55,0.06),transparent 70%);top:-120px;right:-80px;pointer-events:none}
 .logo-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent)}
-.logo-icon{width:56px;height:56px;border-radius:16px;
-  background:linear-gradient(135deg,var(--gold),var(--gold-light));
+.logo-icon{
   display:inline-flex;align-items:center;justify-content:center;
-  margin-bottom:12px;box-shadow:0 0 40px rgba(212,175,55,0.3);
-  font-size:24px;color:#0B0F19;animation:pulse-gold 3s ease-in-out infinite}
+  margin-bottom:12px;}
 .logo-title{color:var(--text-primary);font-size:22px;font-weight:700;position:relative;z-index:1;letter-spacing:-0.02em}
 .logo-sub{color:var(--text-secondary);font-size:12px;position:relative;z-index:1;font-weight:300}
 
@@ -139,8 +140,8 @@ body::after{content:'';position:fixed;width:500px;height:500px;border-radius:50%
 <body>
 <div class="reg-container">
   <div class="logo-card">
-    <div class="logo-icon" style="background:none;box-shadow:none;animation:none;width:120px;height:120px">
-      <img src="/IMAGEN/logo%20of%20.png" alt="Logo" style="width:120px;height:120px;object-fit:contain"/>
+    <div class="logo-icon" style="width:200px;height:200px">
+      <img class="robot-float" src="/IMAGEN/logo%20of%20.png" alt="Logo" style="width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.3))"/>
     </div>
     <div class="logo-title">Crear Cuenta</div>
     <div class="logo-sub">Registrate para acceder al sistema de agentes</div>
