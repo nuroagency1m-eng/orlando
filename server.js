@@ -32,19 +32,7 @@ const UPLOADS_PRODUCTS = path.join(UPLOADS_DIR, 'products');
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/IMAGEN', express.static(path.join(__dirname, 'IMAGEN')));
 
-// Multer config for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const type = req.uploadType || 'products';
-    const dirs = { invoices: UPLOADS_INVOICES, profiles: UPLOADS_PROFILES, products: UPLOADS_PRODUCTS };
-    cb(null, dirs[type] || UPLOADS_PRODUCTS);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+// Note: All file uploads use memUpload + Supabase Storage (defined below in storage section)
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  WHATSAPP SESSION MANAGEMENT (preserved from original)
@@ -1155,53 +1143,60 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Upload invoice photo during registration (Supabase Storage)
-const invoiceUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUPABASE STORAGE — Upload helper (persistent storage for Render)
+// ══════════════════════════════════════════════════════════════════════════════
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Ensure Supabase Storage bucket exists on startup
+async function uploadToSupabase(bucket, fileBuffer, mimetype, originalname) {
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!sbUrl || !sbKey) throw new Error('Storage no configurado');
+  const ext = path.extname(originalname).toLowerCase();
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
+  const uploadRes = await fetch(`${sbUrl}/storage/v1/object/${bucket}/${filename}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${sbKey}`,
+      'Content-Type': mimetype,
+      'x-upsert': 'true'
+    },
+    body: fileBuffer
+  });
+  if (!uploadRes.ok) {
+    const errBody = await uploadRes.text();
+    console.error(`[Storage] Upload error (${bucket}):`, uploadRes.status, errBody);
+    throw new Error('Error al subir a storage');
+  }
+  const url = `${sbUrl}/storage/v1/object/public/${bucket}/${filename}`;
+  console.log(`[Storage] Uploaded to ${bucket}: ${filename}`);
+  return url;
+}
+
+// Ensure Supabase Storage buckets exist on startup
 (async () => {
   const sbUrl = process.env.SUPABASE_URL;
   const sbKey = process.env.SUPABASE_SERVICE_KEY;
   if (!sbUrl || !sbKey) return;
-  try {
-    await fetch(`${sbUrl}/storage/v1/bucket`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${sbKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: 'invoices', name: 'invoices', public: true })
-    });
-    console.log('[Storage] Bucket "invoices" ready');
-  } catch(e) { console.log('[Storage] Bucket check:', e.message); }
+  for (const bucket of ['invoices', 'products', 'profiles']) {
+    try {
+      await fetch(`${sbUrl}/storage/v1/bucket`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${sbKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bucket, name: bucket, public: true })
+      });
+    } catch(e) {}
+  }
+  console.log('[Storage] Buckets ready (invoices, products, profiles)');
 })();
 
-app.post('/api/auth/register/upload-invoice', invoiceUpload.single('invoice'), async (req, res) => {
+app.post('/api/auth/register/upload-invoice', memUpload.single('invoice'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subio archivo' });
-  const sbUrl = process.env.SUPABASE_URL;
-  const sbKey = process.env.SUPABASE_SERVICE_KEY;
-  if (!sbUrl || !sbKey) {
-    return res.status(500).json({ error: 'Storage no configurado' });
-  }
-  const ext = path.extname(req.file.originalname).toLowerCase();
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
   try {
-    const uploadRes = await fetch(`${sbUrl}/storage/v1/object/invoices/${filename}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${sbKey}`,
-        'Content-Type': req.file.mimetype,
-        'x-upsert': 'true'
-      },
-      body: req.file.buffer
-    });
-    if (!uploadRes.ok) {
-      const errBody = await uploadRes.text();
-      console.error('[Storage] Upload error:', uploadRes.status, errBody);
-      throw new Error('Error al subir a storage');
-    }
-    const url = `${sbUrl}/storage/v1/object/public/invoices/${filename}`;
-    console.log(`[Storage] Invoice uploaded: ${filename} -> ${url}`);
+    const url = await uploadToSupabase('invoices', req.file.buffer, req.file.mimetype, req.file.originalname);
     res.json({ ok: true, url });
   } catch(e) {
-    console.error('[Storage] Upload failed:', e.message);
+    console.error('[Storage] Invoice upload failed:', e.message);
     res.status(500).json({ error: 'Error al subir archivo: ' + e.message });
   }
 });
@@ -1281,14 +1276,16 @@ app.put('/api/user/profile', requireAuth, async (req, res) => {
   res.json({ ok: true, user: { id: updated.id, nombre: updated.nombre, apellido: updated.apellido, ciudad: updated.ciudad, usuario_fase: updated.usuario_fase, rango_fase: updated.rango_fase, foto_perfil: updated.foto_perfil } });
 });
 
-app.post('/api/user/profile/photo', requireAuth, (req, res, next) => {
-  req.uploadType = 'profiles';
-  next();
-}, upload.single('photo'), async (req, res) => {
+app.post('/api/user/profile/photo', requireAuth, memUpload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subio foto' });
-  const url = `/uploads/profiles/${req.file.filename}`;
-  await Users.update(req.user.id, { foto_perfil: url });
-  res.json({ ok: true, url });
+  try {
+    const url = await uploadToSupabase('profiles', req.file.buffer, req.file.mimetype, req.file.originalname);
+    await Users.update(req.user.id, { foto_perfil: url });
+    res.json({ ok: true, url });
+  } catch(e) {
+    console.error('[Storage] Profile photo upload failed:', e.message);
+    res.status(500).json({ error: 'Error al subir foto: ' + e.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1487,20 +1484,24 @@ app.post('/api/bots/:botId/products', requireAuth, async (req, res) => {
   res.json({ ok: true, product });
 });
 
-// Upload product image
+// Upload product image (Supabase Storage)
 app.post('/api/bots/:botId/products/upload-image', requireAuth, async (req, res, next) => {
   const bot = await Bots.findById(req.params.botId);
   if (!bot) return res.status(404).json({ error: 'Bot no encontrado' });
   if (bot.user_id !== req.user.id && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'No tienes acceso a este bot' });
   }
-  req.uploadType = 'products';
   next();
-}, upload.single('image'), (req, res) => {
+}, memUpload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subio imagen' });
-  const url = `/uploads/products/${req.file.filename}`;
-  console.log(`[UPLOAD] Imagen de producto subida: ${url} (bot: ${req.params.botId}, user: ${req.user.id})`);
-  res.json({ ok: true, url });
+  try {
+    const url = await uploadToSupabase('products', req.file.buffer, req.file.mimetype, req.file.originalname);
+    console.log(`[UPLOAD] Imagen de producto subida: ${url} (bot: ${req.params.botId}, user: ${req.user.id})`);
+    res.json({ ok: true, url });
+  } catch(e) {
+    console.error('[Storage] Product image upload failed:', e.message);
+    res.status(500).json({ error: 'Error al subir imagen: ' + e.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
