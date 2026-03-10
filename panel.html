@@ -210,6 +210,10 @@ select.inp{cursor:pointer;appearance:none}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .grid-2-dash{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 
+/* Desktop: show tab bar, hide mobile menu */
+.tab-bar-desktop{display:block}
+.mobile-tab-menu{display:none}
+
 /* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
@@ -272,6 +276,10 @@ select.inp{cursor:pointer;appearance:none}
   /* Tab bar horizontal scroll */
   .tab-bar-scroll{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 8px}
   .tab-bar-scroll::-webkit-scrollbar{display:none}
+
+  /* Hide desktop tab bar on mobile, show mobile menu */
+  .tab-bar-desktop{display:none}
+  .mobile-tab-menu{display:flex}
 
   /* Safe area for notch phones */
   .bottom-nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
@@ -1367,26 +1375,45 @@ const TabQR = ({bot, onUpdate}) => {
 
 // ─── TABS CONFIG ──
 const TABS = [
-  {id:"creds",label:"Credenciales",Icon:IcKey},
-  {id:"tpl",label:"Plantilla",Icon:IcFile},
-  {id:"prods",label:"Productos",Icon:IcBox},
-  {id:"seg",label:"Seguimientos",Icon:IcBell},
-  {id:"qr",label:"Conectar WhatsApp",Icon:IcQr},
+  {id:"creds",label:"Credenciales",Icon:IcKey,desc:"API Key, modelo y estado",color:"#3eb8f0"},
+  {id:"tpl",label:"Plantilla",Icon:IcFile,desc:"System prompt e instrucciones",color:"#1a9de0"},
+  {id:"prods",label:"Productos",Icon:IcBox,desc:"Base de conocimiento del agente",color:"#22c55e"},
+  {id:"seg",label:"Seguimientos",Icon:IcBell,desc:"Intervalos de re-contacto",color:"#f59e0b"},
+  {id:"qr",label:"Conectar WhatsApp",Icon:IcQr,desc:"Vincular numero por QR",color:"#8b5cf6"},
 ];
 
 // ─── BOT DETAIL ──
 const BotDetail = ({bot, onBack, onUpdate}) => {
-  const [tab, setTab] = useState("creds");
+  const [tab, setTab] = useState(null);
   const [editName, setEditName] = useState(false);
   const [name, setName] = useState(bot.name);
+  const [isMobile, setIsMobile] = useState(typeof window!=='undefined' && window.innerWidth <= 768);
   const upd = c => onUpdate(bot.id, c);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const activeTab = TABS.find(t=>t.id===tab);
+
+  // Mobile: show menu when no tab selected, show content when tab selected
+  // Desktop: always show tabs bar + content (default to creds)
+  const effectiveTab = tab || (isMobile ? null : "creds");
 
   return (
     <div>
       <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
-        <button onClick={onBack} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-          <IcArrow s={16} c="var(--text)"/> Volver
-        </button>
+        {(isMobile && tab) ? (
+          <button onClick={()=>setTab(null)} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <IcArrow s={16} c="var(--text)"/> {activeTab?.label || 'Menu'}
+          </button>
+        ) : (
+          <button onClick={onBack} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <IcArrow s={16} c="var(--text)"/> Volver
+          </button>
+        )}
       </div>
       <div className="navy navy-wave" style={{padding:"22px 24px",marginBottom:24,position:"relative",borderRadius:"var(--radius-lg)"}}>
         <CardDeco/>
@@ -1406,18 +1433,51 @@ const BotDetail = ({bot, onBack, onUpdate}) => {
           <StatusDot active={bot.active}/>
         </div>
       </div>
-      <div className="tab-bar-scroll" style={{background:"var(--bg-card)",border:"1px solid var(--border)",marginBottom:20,borderRadius:"var(--radius-lg)"}}>
-        {TABS.map(t=>(<button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
-          <t.Icon s={14} c={tab===t.id?"var(--cyan-dark)":"var(--text-secondary)"}/> {t.label}
-        </button>))}
+
+      {/* Desktop: horizontal tab bar */}
+      <div className="tab-bar-desktop">
+        <div className="tab-bar-scroll" style={{background:"var(--bg-card)",border:"1px solid var(--border)",marginBottom:20,borderRadius:"var(--radius-lg)"}}>
+          {TABS.map(t=>(<button key={t.id} className={`tab-btn${(effectiveTab||"creds")===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
+            <t.Icon s={14} c={(effectiveTab||"creds")===t.id?"var(--cyan-dark)":"var(--text-secondary)"}/> {t.label}
+          </button>))}
+        </div>
       </div>
-      <div>
-        {tab==="creds"&&<TabCreds bot={bot} onUpdate={upd}/>}
-        {tab==="tpl"&&<TabPlantilla bot={bot} onUpdate={upd}/>}
-        {tab==="prods"&&<TabProductos bot={bot} onUpdate={upd}/>}
-        {tab==="seg"&&<TabSeguimientos bot={bot} onUpdate={upd}/>}
-        {tab==="qr"&&<TabQR bot={bot} onUpdate={upd}/>}
-      </div>
+
+      {/* Mobile: vertical menu cards (shown when no tab selected) */}
+      {isMobile && !tab && (
+        <div className="mobile-tab-menu" style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.2s"}}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px",
+                background:"rgba(255,255,255,0.12)",backdropFilter:"blur(12px)",
+                border:"1.5px solid rgba(255,255,255,0.25)",borderRadius:16,
+                cursor:"pointer",transition:"all 0.2s",textAlign:"left",
+                fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+              <div style={{width:44,height:44,borderRadius:12,
+                background:`${t.color}15`,border:`1.5px solid ${t.color}30`,
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <t.Icon s={20} c={t.color}/>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{color:"var(--navy-deep)",fontSize:14,fontWeight:700}}>{t.label}</div>
+                <div style={{color:"var(--text-mid)",fontSize:12,marginTop:2}}>{t.desc}</div>
+              </div>
+              <IcRight s={18} c="var(--text-mid)"/>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tab content */}
+      {effectiveTab && (
+        <div style={{animation:"fadeIn 0.2s"}}>
+          {effectiveTab==="creds"&&<TabCreds bot={bot} onUpdate={upd}/>}
+          {effectiveTab==="tpl"&&<TabPlantilla bot={bot} onUpdate={upd}/>}
+          {effectiveTab==="prods"&&<TabProductos bot={bot} onUpdate={upd}/>}
+          {effectiveTab==="seg"&&<TabSeguimientos bot={bot} onUpdate={upd}/>}
+          {effectiveTab==="qr"&&<TabQR bot={bot} onUpdate={upd}/>}
+        </div>
+      )}
     </div>
   );
 };
