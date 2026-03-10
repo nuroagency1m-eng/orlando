@@ -375,34 +375,53 @@ const UserModal = ({user, onClose, onUpdate}) => {
           </div>
 
           {/* Foto de Factura */}
+          {(() => {
+            const isPdf = user.foto_factura && user.foto_factura.toLowerCase().endsWith('.pdf');
+            return (
           <div style={{marginBottom:24}}>
-            <div className="section-title"><span className="section-dot" style={{background:'var(--purple)'}}></span>Foto de Factura</div>
+            <div className="section-title"><span className="section-dot" style={{background:'var(--purple)'}}></span>Comprobante de Registro</div>
             {user.foto_factura ? (
               <div style={{border:'1.5px solid rgba(139,92,246,0.3)',borderRadius:14,padding:16,background:'rgba(139,92,246,0.04)'}}>
-                <img src={user.foto_factura} alt="Factura"
-                  style={{width:'100%',maxHeight:600,objectFit:'contain',borderRadius:12,
-                    border:'1.5px solid rgba(55,65,81,0.5)',background:'rgba(15,23,42,0.8)',cursor:'zoom-in',
-                    display:'block',marginBottom:14}}
-                  onClick={()=>setShowFactura(true)}/>
+                {isPdf ? (
+                  <div style={{textAlign:'center',padding:24}}>
+                    <div style={{width:64,height:64,borderRadius:16,background:'linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.05))',
+                      display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12,border:'1.5px solid rgba(239,68,68,0.25)'}}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                    </div>
+                    <div style={{color:'var(--text)',fontSize:14,fontWeight:600,marginBottom:4}}>Comprobante PDF</div>
+                    <div style={{color:'var(--text-secondary)',fontSize:12,marginBottom:16}}>El usuario subio un documento PDF</div>
+                  </div>
+                ) : (
+                  <img src={user.foto_factura} alt="Comprobante"
+                    style={{width:'100%',maxHeight:600,objectFit:'contain',borderRadius:12,
+                      border:'1.5px solid rgba(55,65,81,0.5)',background:'rgba(15,23,42,0.8)',cursor:'zoom-in',
+                      display:'block',marginBottom:14}}
+                    onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='block';}}
+                    onClick={()=>setShowFactura(true)}/>
+                )}
+                {!isPdf && <div style={{display:'none',padding:16,textAlign:'center',color:'var(--warn)',fontSize:13,fontWeight:600,background:'rgba(245,158,11,0.06)',borderRadius:10,border:'1px solid rgba(245,158,11,0.2)',marginBottom:14}}>No se pudo cargar la imagen. Usa el boton para abrirla en nueva pestana.</div>}
                 <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+                  {!isPdf && (
                   <button onClick={()=>setShowFactura(true)}
                     style={{background:'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.1))',
                       border:'1.5px solid rgba(139,92,246,0.35)',borderRadius:10,
                       padding:'10px 20px',color:'#a78bfa',fontSize:13,fontWeight:700,cursor:'pointer',
                       display:'flex',alignItems:'center',gap:8,transition:'all 0.2s'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
-                    Ver factura con zoom
+                    Ver con zoom
                   </button>
+                  )}
                   <button onClick={()=>window.open(user.foto_factura,'_blank')}
-                    style={{background:'rgba(55,65,81,0.4)',border:'1.5px solid rgba(55,65,81,0.6)',borderRadius:10,
-                      padding:'10px 20px',color:'var(--text-secondary)',fontSize:13,fontWeight:700,cursor:'pointer',
+                    style={{background:isPdf?'linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.1))':'rgba(55,65,81,0.4)',
+                      border:isPdf?'1.5px solid rgba(239,68,68,0.35)':'1.5px solid rgba(55,65,81,0.6)',borderRadius:10,
+                      padding:'10px 20px',color:isPdf?'#f87171':'var(--text-secondary)',fontSize:13,fontWeight:700,cursor:'pointer',
                       display:'flex',alignItems:'center',gap:8,transition:'all 0.2s'}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    Abrir en nueva pestana
+                    {isPdf ? 'Abrir PDF' : 'Abrir en nueva pestana'}
                   </button>
                 </div>
-                {/* Lightbox overlay with zoom */}
-                {showFactura && (
+                {/* Lightbox overlay with zoom (solo para imagenes) */}
+                {!isPdf && showFactura && (
                   <div onClick={()=>{setShowFactura(false);setZoomLevel(1);}}
                     style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.95)',
                       zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',
@@ -414,7 +433,7 @@ const UserModal = ({user, onClose, onUpdate}) => {
                       <button onClick={e=>{e.stopPropagation();setZoomLevel(z=>Math.min(4,z+0.25))}}
                         style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,width:40,height:40,color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>+</button>
                     </div>
-                    <img src={user.foto_factura} alt="Factura completa"
+                    <img src={user.foto_factura} alt="Comprobante completo"
                       style={{maxWidth:zoomLevel>1?'none':'95%',maxHeight:zoomLevel>1?'none':'95vh',
                         width:zoomLevel>1?`${zoomLevel*100}%`:'auto',
                         objectFit:'contain',borderRadius:12,
@@ -433,11 +452,13 @@ const UserModal = ({user, onClose, onUpdate}) => {
               </div>
             ) : (
               <div style={{padding:24,textAlign:'center',borderRadius:12,border:'1.5px dashed #fca5a5',background:'rgba(254,242,242,0.05)'}}>
-                <div style={{color:'var(--danger)',fontSize:13,fontWeight:600}}>No se subio foto de factura</div>
-                <div style={{color:'var(--text-light)',fontSize:11,marginTop:4}}>El usuario no adjunto comprobante</div>
+                <div style={{color:'var(--danger)',fontSize:13,fontWeight:600}}>No se subio comprobante</div>
+                <div style={{color:'var(--text-light)',fontSize:11,marginTop:4}}>El usuario no adjunto comprobante de registro</div>
               </div>
             )}
           </div>
+            );
+          })()}
 
           {/* Bot limit */}
           <div style={{marginBottom:24}}>
@@ -581,11 +602,11 @@ function AdminApp() {
               {u.foto_factura
                 ? <span style={{color:'var(--purple)',display:'flex',alignItems:'center',gap:3}}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                    Factura
+                    {u.foto_factura.toLowerCase().endsWith('.pdf') ? 'PDF' : 'Comprobante'}
                   </span>
                 : <span style={{color:'var(--danger)',display:'flex',alignItems:'center',gap:3,fontWeight:600}}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    Sin factura
+                    Sin comprobante
                   </span>
               }
             </div>

@@ -1155,14 +1155,55 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Upload invoice photo during registration
-app.post('/api/auth/register/upload-invoice', (req, res, next) => {
-  req.uploadType = 'invoices';
-  next();
-}, upload.single('invoice'), (req, res) => {
+// Upload invoice photo during registration (Supabase Storage)
+const invoiceUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Ensure Supabase Storage bucket exists on startup
+(async () => {
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!sbUrl || !sbKey) return;
+  try {
+    await fetch(`${sbUrl}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${sbKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'invoices', name: 'invoices', public: true })
+    });
+    console.log('[Storage] Bucket "invoices" ready');
+  } catch(e) { console.log('[Storage] Bucket check:', e.message); }
+})();
+
+app.post('/api/auth/register/upload-invoice', invoiceUpload.single('invoice'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subio archivo' });
-  const url = `/uploads/invoices/${req.file.filename}`;
-  res.json({ ok: true, url });
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!sbUrl || !sbKey) {
+    return res.status(500).json({ error: 'Storage no configurado' });
+  }
+  const ext = path.extname(req.file.originalname).toLowerCase();
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
+  try {
+    const uploadRes = await fetch(`${sbUrl}/storage/v1/object/invoices/${filename}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${sbKey}`,
+        'Content-Type': req.file.mimetype,
+        'x-upsert': 'true'
+      },
+      body: req.file.buffer
+    });
+    if (!uploadRes.ok) {
+      const errBody = await uploadRes.text();
+      console.error('[Storage] Upload error:', uploadRes.status, errBody);
+      throw new Error('Error al subir a storage');
+    }
+    const url = `${sbUrl}/storage/v1/object/public/invoices/${filename}`;
+    console.log(`[Storage] Invoice uploaded: ${filename} -> ${url}`);
+    res.json({ ok: true, url });
+  } catch(e) {
+    console.error('[Storage] Upload failed:', e.message);
+    res.status(500).json({ error: 'Error al subir archivo: ' + e.message });
+  }
 });
 
 app.post('/api/auth/login', async (req, res) => {
