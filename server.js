@@ -504,11 +504,14 @@ async function transcribeAudio(audioBuffer, openaiKey) {
 // ══════════════════════════════════════════════════════════════════════════════
 //  CREAR / CONECTAR SESION WHATSAPP
 // ══════════════════════════════════════════════════════════════════════════════
-async function startSession(botId) {
+async function startSession(botId, forceNew = false) {
   const session = getSession(botId);
-  if (session.socket && session.status === 'connected') return session;
-  if (session.status === 'connecting' || session.status === 'waiting_scan') return session;
+  if (!forceNew) {
+    if (session.socket && session.status === 'connected') return session;
+    if (session.status === 'waiting_scan') return session;
+  }
 
+  // Limpiar socket anterior
   if (session.socket) {
     try { session.socket.end(); } catch(e) {}
     session.socket = null;
@@ -519,6 +522,7 @@ async function startSession(botId) {
   session.qrDataURL = null;
   session.error = null;
 
+  try {
   const { state, saveCreds } = await usePostgresAuthState(botId);
   const { version } = await fetchLatestBaileysVersion();
 
@@ -535,11 +539,7 @@ async function startSession(botId) {
     markOnlineOnConnect: true,
     getMessage: async (key) => {
       const stored = msgStore.get(key.id);
-      if (stored) {
-        console.log(`[Bot ${botId}] getMessage: encontrado ${key.id}`);
-        return stored;
-      }
-      console.log(`[Bot ${botId}] getMessage: NO encontrado ${key.id}`);
+      if (stored) return stored;
       return undefined;
     },
   });
@@ -968,6 +968,13 @@ async function startSession(botId) {
 
   socket.ev.on('creds.update', saveCreds);
   return session;
+
+  } catch(startErr) {
+    console.error(`[Bot ${botId}] Error en startSession:`, startErr.message);
+    session.status = 'error';
+    session.error = startErr.message;
+    throw startErr;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1631,8 +1638,15 @@ app.post('/api/wa/sessions/:botId/start', requireAuth, requireBotOwner, async (r
   const { botId } = req.params;
   console.log(`[API] POST /start — Bot ${botId}`);
   try {
+    const session = getSession(botId);
+    // Si esta atascado en 'connecting' o 'error', forzar reinicio
+    if (session.status === 'connecting' || session.status === 'error') {
+      console.log(`[API] Session stuck in '${session.status}', forcing restart`);
+      if (session.socket) { try { session.socket.end(); } catch(e) {} session.socket = null; }
+      session.status = 'disconnected';
+    }
     await startSession(botId);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     const current = getSession(botId);
     res.json({
       status: current.status, qr: current.qr, qrDataURL: current.qrDataURL,
@@ -1660,9 +1674,12 @@ app.post('/api/wa/sessions/:botId/reconnect', requireAuth, requireBotOwner, asyn
     const session = getSession(botId);
     if (session.socket) { try { session.socket.end(); } catch(e) {} session.socket = null; }
     session.retryCount = 0;
-    session.status = 'connecting';
-    await startSession(botId);
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    session.status = 'disconnected';
+    // Limpiar auth state viejo para forzar nuevo QR
+    try { await WaAuthState.deleteAll(botId); } catch(e) {}
+    console.log(`[API] Auth state limpiado para bot ${botId}, generando nuevo QR...`);
+    await startSession(botId, true);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     const current = getSession(botId);
     res.json({
       status: current.status, qr: current.qr, qrDataURL: current.qrDataURL,
