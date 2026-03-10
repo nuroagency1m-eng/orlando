@@ -302,6 +302,7 @@ const UserModal = ({user, onClose, onUpdate}) => {
   const [maxBots, setMaxBots] = useState(user.max_bots);
   const [toast, setToast] = useState(false);
   const [showFactura, setShowFactura] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const updateStatus = async (status) => {
     try {
@@ -377,43 +378,56 @@ const UserModal = ({user, onClose, onUpdate}) => {
           <div style={{marginBottom:24}}>
             <div className="section-title"><span className="section-dot" style={{background:'var(--purple)'}}></span>Foto de Factura</div>
             {user.foto_factura ? (
-              <div style={{border:'1.5px solid rgba(139,92,246,0.3)',borderRadius:14,padding:12,background:'rgba(139,92,246,0.04)'}}>
+              <div style={{border:'1.5px solid rgba(139,92,246,0.3)',borderRadius:14,padding:16,background:'rgba(139,92,246,0.04)'}}>
                 <img src={user.foto_factura} alt="Factura"
-                  style={{width:'100%',maxHeight:500,objectFit:'contain',borderRadius:10,
-                    border:'1px solid rgba(55,65,81,0.5)',background:'rgba(15,23,42,0.8)',cursor:'zoom-in',
-                    display:'block'}}
+                  style={{width:'100%',maxHeight:600,objectFit:'contain',borderRadius:12,
+                    border:'1.5px solid rgba(55,65,81,0.5)',background:'rgba(15,23,42,0.8)',cursor:'zoom-in',
+                    display:'block',marginBottom:14}}
                   onClick={()=>setShowFactura(true)}/>
-                <div style={{display:'flex',gap:8,marginTop:10,justifyContent:'center'}}>
+                <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
                   <button onClick={()=>setShowFactura(true)}
-                    style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',borderRadius:8,
-                      padding:'8px 16px',color:'#a78bfa',fontSize:12,fontWeight:600,cursor:'pointer',
-                      display:'flex',alignItems:'center',gap:6}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
-                    Ver ampliado
+                    style={{background:'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.1))',
+                      border:'1.5px solid rgba(139,92,246,0.35)',borderRadius:10,
+                      padding:'10px 20px',color:'#a78bfa',fontSize:13,fontWeight:700,cursor:'pointer',
+                      display:'flex',alignItems:'center',gap:8,transition:'all 0.2s'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+                    Ver factura con zoom
                   </button>
                   <button onClick={()=>window.open(user.foto_factura,'_blank')}
-                    style={{background:'rgba(55,65,81,0.4)',border:'1px solid rgba(55,65,81,0.6)',borderRadius:8,
-                      padding:'8px 16px',color:'var(--text-secondary)',fontSize:12,fontWeight:600,cursor:'pointer',
-                      display:'flex',alignItems:'center',gap:6}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    style={{background:'rgba(55,65,81,0.4)',border:'1.5px solid rgba(55,65,81,0.6)',borderRadius:10,
+                      padding:'10px 20px',color:'var(--text-secondary)',fontSize:13,fontWeight:700,cursor:'pointer',
+                      display:'flex',alignItems:'center',gap:8,transition:'all 0.2s'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     Abrir en nueva pestana
                   </button>
                 </div>
-                {/* Lightbox overlay */}
+                {/* Lightbox overlay with zoom */}
                 {showFactura && (
-                  <div onClick={()=>setShowFactura(false)}
-                    style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',
-                      zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out',
-                      padding:20}}>
+                  <div onClick={()=>{setShowFactura(false);setZoomLevel(1);}}
+                    style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.95)',
+                      zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',
+                      padding:20,flexDirection:'column',overflow:'auto'}}>
+                    <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',display:'flex',gap:8,zIndex:10000}}>
+                      <button onClick={e=>{e.stopPropagation();setZoomLevel(z=>Math.max(0.5,z-0.25))}}
+                        style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,width:40,height:40,color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>-</button>
+                      <span style={{background:'rgba(255,255,255,0.1)',borderRadius:10,padding:'8px 16px',color:'#fff',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',backdropFilter:'blur(8px)'}}>{Math.round(zoomLevel*100)}%</span>
+                      <button onClick={e=>{e.stopPropagation();setZoomLevel(z=>Math.min(4,z+0.25))}}
+                        style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,width:40,height:40,color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>+</button>
+                    </div>
                     <img src={user.foto_factura} alt="Factura completa"
-                      style={{maxWidth:'95%',maxHeight:'95vh',objectFit:'contain',borderRadius:12,
-                        boxShadow:'0 0 60px rgba(0,0,0,0.8)'}}
-                      onClick={e=>e.stopPropagation()}/>
-                    <button onClick={()=>setShowFactura(false)}
-                      style={{position:'fixed',top:20,right:20,background:'rgba(255,255,255,0.15)',
-                        border:'none',borderRadius:'50%',width:40,height:40,color:'#fff',fontSize:20,
-                        cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
-                        backdropFilter:'blur(8px)'}}>✕</button>
+                      style={{maxWidth:zoomLevel>1?'none':'95%',maxHeight:zoomLevel>1?'none':'95vh',
+                        width:zoomLevel>1?`${zoomLevel*100}%`:'auto',
+                        objectFit:'contain',borderRadius:12,
+                        boxShadow:'0 0 60px rgba(0,0,0,0.8)',transition:'transform 0.2s',cursor:zoomLevel>1?'grab':'zoom-in'}}
+                      onClick={e=>{e.stopPropagation();setZoomLevel(z=>z===1?2:1);}}/>
+                    <div style={{position:'fixed',top:16,right:16,display:'flex',gap:8,zIndex:10000}}>
+                      <button onClick={e=>{e.stopPropagation();window.open(user.foto_factura,'_blank')}}
+                        style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,width:40,height:40,color:'#fff',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      </button>
+                      <button onClick={e=>{e.stopPropagation();setShowFactura(false);setZoomLevel(1);}}
+                        style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:10,width:40,height:40,color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>✕</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -559,11 +573,21 @@ function AdminApp() {
               <StatusBadge status={u.status}/>
               {u.role==='admin' && <span className="badge badge-admin">ADMIN</span>}
             </div>
-            <div style={{color:'var(--text-secondary)',fontSize:12,display:'flex',gap:12,flexWrap:'wrap'}}>
+            <div style={{color:'var(--text-secondary)',fontSize:12,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
               <span>@{u.username||'---'}</span>
               <span>{u.email}</span>
               <span>Agentes: {u.bot_count}/{u.max_bots}</span>
               {u.ciudad && <span>{u.ciudad}</span>}
+              {u.foto_factura
+                ? <span style={{color:'var(--purple)',display:'flex',alignItems:'center',gap:3}}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                    Factura
+                  </span>
+                : <span style={{color:'var(--danger)',display:'flex',alignItems:'center',gap:3,fontWeight:600}}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Sin factura
+                  </span>
+              }
             </div>
           </div>
           {u.role !== 'admin' && (
