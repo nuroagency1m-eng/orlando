@@ -128,6 +128,29 @@ async function initDB() {
         content TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS wa_auth_state (
+        bot_id TEXT NOT NULL,
+        data_key TEXT NOT NULL,
+        data_value TEXT NOT NULL DEFAULT '{}',
+        PRIMARY KEY (bot_id, data_key)
+      );
+
+      CREATE TABLE IF NOT EXISTS wa_msg_store (
+        bot_id TEXT NOT NULL,
+        msg_id TEXT NOT NULL,
+        data TEXT NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (bot_id, msg_id)
+      );
+    `);
+
+    // Add created_at column to wa_msg_store if missing (for existing DBs)
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE wa_msg_store ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
     `);
 
     // Indices
@@ -139,6 +162,8 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_sales_bot ON sales(bot_id);
       CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id);
       CREATE INDEX IF NOT EXISTS idx_conv_history ON conversation_history(bot_id, phone);
+      CREATE INDEX IF NOT EXISTS idx_wa_auth_bot ON wa_auth_state(bot_id);
+      CREATE INDEX IF NOT EXISTS idx_wa_msg_bot ON wa_msg_store(bot_id);
     `);
 
     console.log('[DB] ✅ PostgreSQL schema inicializado');
@@ -621,6 +646,79 @@ const ConversationHistory = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  WHATSAPP AUTH STATE (persistent in PostgreSQL)
+// ══════════════════════════════════════════════════════════════════════════════
+const WaAuthState = {
+  async get(botId, key) {
+    const { rows } = await pool.query('SELECT data_value FROM wa_auth_state WHERE bot_id = $1 AND data_key = $2', [botId, key]);
+    return rows[0]?.data_value || null;
+  },
+  async set(botId, key, value) {
+    await pool.query(
+      `INSERT INTO wa_auth_state (bot_id, data_key, data_value) VALUES ($1, $2, $3)
+       ON CONFLICT (bot_id, data_key) DO UPDATE SET data_value = $3`,
+      [botId, key, value]
+    );
+  },
+  async delete(botId, key) {
+    await pool.query('DELETE FROM wa_auth_state WHERE bot_id = $1 AND data_key = $2', [botId, key]);
+  },
+  async deleteAll(botId) {
+    await pool.query('DELETE FROM wa_auth_state WHERE bot_id = $1', [botId]);
+  },
+  async hasCreds(botId) {
+    const { rows } = await pool.query('SELECT 1 FROM wa_auth_state WHERE bot_id = $1 AND data_key = $2 LIMIT 1', [botId, 'creds']);
+    return rows.length > 0;
+  },
+  async getKeys(botId, type, ids) {
+    if (!ids || ids.length === 0) return {};
+    const keys = ids.map(id => `${type}:${id}`);
+    const placeholders = keys.map((_, i) => `$${i + 2}`).join(',');
+    const { rows } = await pool.query(
+      `SELECT data_key, data_value FROM wa_auth_state WHERE bot_id = $1 AND data_key IN (${placeholders})`,
+      [botId, ...keys]
+    );
+    const result = {};
+    for (const row of rows) {
+      const id = row.data_key.split(':').slice(1).join(':');
+      try { result[id] = JSON.parse(row.data_value); } catch(e) {}
+    }
+    return result;
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  WHATSAPP MESSAGE STORE (persistent in PostgreSQL)
+// ══════════════════════════════════════════════════════════════════════════════
+const WaMsgStore = {
+  async load(botId) {
+    const { rows } = await pool.query(
+      'SELECT msg_id, data FROM wa_msg_store WHERE bot_id = $1 ORDER BY created_at DESC LIMIT 500', [botId]
+    );
+    const store = new Map();
+    for (const row of rows) {
+      try { store.set(row.msg_id, JSON.parse(row.data)); } catch(e) {}
+    }
+    return store;
+  },
+  async save(botId, msgId, data) {
+    await pool.query(
+      `INSERT INTO wa_msg_store (bot_id, msg_id, data) VALUES ($1, $2, $3)
+       ON CONFLICT (bot_id, msg_id) DO UPDATE SET data = $3`,
+      [botId, msgId, JSON.stringify(data)]
+    );
+  },
+  async deleteAll(botId) {
+    await pool.query('DELETE FROM wa_msg_store WHERE bot_id = $1', [botId]);
+  },
+  async trim(botId) {
+    await pool.query(`DELETE FROM wa_msg_store WHERE bot_id = $1 AND msg_id NOT IN (
+      SELECT msg_id FROM wa_msg_store WHERE bot_id = $1 ORDER BY created_at DESC LIMIT 500
+    )`, [botId]);
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  INIT — crear tablas + seed admin
 // ══════════════════════════════════════════════════════════════════════════════
 async function initDatabase() {
@@ -629,4 +727,4 @@ async function initDatabase() {
   console.log('[DB] ✅ Base de datos PostgreSQL lista');
 }
 
-module.exports = { pool, Users, Bots, Products, Conversations, Sales, ConversationHistory, botToConfig, botToFrontend, initDatabase };
+module.exports = { pool, Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, botToConfig, botToFrontend, initDatabase };

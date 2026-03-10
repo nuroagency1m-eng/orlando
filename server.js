@@ -1,13 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const FormData = require('form-data');
 const QRCode = require('qrcode');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { Users, Bots, Products, Conversations, Sales, ConversationHistory, botToConfig, botToFrontend, initDatabase } = require('./database');
+const { Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, botToConfig, botToFrontend, initDatabase } = require('./database');
 const { generateToken, requireAuth, requireAdmin } = require('./auth');
 
 const app = express();
@@ -19,20 +19,10 @@ app.use(express.json({ limit: '5mb' }));
 const logger = pino({ level: 'silent' });
 
 // Directorios
-const SESSIONS_DIR = path.join(__dirname, 'wa_sessions');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-const UPLOADS_INVOICES = path.join(UPLOADS_DIR, 'invoices');
-const UPLOADS_PROFILES = path.join(UPLOADS_DIR, 'profiles');
-const UPLOADS_PRODUCTS = path.join(UPLOADS_DIR, 'products');
-[SESSIONS_DIR, UPLOADS_DIR, UPLOADS_INVOICES, UPLOADS_PROFILES, UPLOADS_PRODUCTS].forEach(d => {
-  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-});
-
-// Servir archivos estaticos de uploads
-app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/IMAGEN', express.static(path.join(__dirname, 'IMAGEN')));
 
-// Note: All file uploads use memUpload + Supabase Storage (defined below in storage section)
+// Note: All file uploads use memUpload + Supabase Storage (defined below)
+// Note: WhatsApp sessions + msg stores are persisted in PostgreSQL
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  WHATSAPP SESSION MANAGEMENT (preserved from original)
@@ -42,29 +32,91 @@ const MAX_MESSAGES = 200;
 const conversations = new Map();
 const MAX_HISTORY = 20;
 
-// Almacen de mensajes enviados (persistente)
-const MSG_STORE_DIR = path.join(__dirname, 'msg_stores');
-if (!fs.existsSync(MSG_STORE_DIR)) fs.mkdirSync(MSG_STORE_DIR, { recursive: true });
-
-function loadMsgStore(botId) {
-  const store = new Map();
-  const file = path.join(MSG_STORE_DIR, `bot_${botId}.json`);
-  if (fs.existsSync(file)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-      for (const [k, v] of Object.entries(data)) store.set(k, v);
-      console.log(`[MsgStore] Bot ${botId}: ${store.size} mensajes cargados`);
-    } catch(e) {}
+// Almacen de mensajes enviados (persistente en PostgreSQL)
+async function loadMsgStore(botId) {
+  try {
+    const store = await WaMsgStore.load(botId);
+    if (store.size > 0) console.log(`[MsgStore] Bot ${botId}: ${store.size} mensajes cargados desde DB`);
+    return store;
+  } catch(e) {
+    console.error(`[MsgStore] Error cargando store bot ${botId}:`, e.message);
+    return new Map();
   }
-  return store;
 }
 
-function saveMsgStore(botId, store) {
-  const file = path.join(MSG_STORE_DIR, `bot_${botId}.json`);
-  const obj = {};
-  const entries = [...store.entries()].slice(-500);
-  for (const [k, v] of entries) obj[k] = v;
-  try { fs.writeFileSync(file, JSON.stringify(obj)); } catch(e) {}
+async function saveMsgStore(botId, msgId, data) {
+  try {
+    await WaMsgStore.save(botId, msgId, data);
+  } catch(e) {
+    console.error(`[MsgStore] Error guardando msg ${msgId}:`, e.message);
+  }
+}
+
+// ── Auth state persistente en PostgreSQL (reemplaza useMultiFileAuthState) ──
+async function usePostgresAuthState(botId) {
+  const { proto } = require('@whiskeysockets/baileys');
+  const { BufferJSON, initAuthCreds } = require('@whiskeysockets/baileys');
+
+  const readData = async (key) => {
+    const raw = await WaAuthState.get(botId, key);
+    if (!raw) return null;
+    return JSON.parse(raw, BufferJSON.reviver);
+  };
+
+  const writeData = async (key, value) => {
+    await WaAuthState.set(botId, key, JSON.stringify(value, BufferJSON.replacer));
+  };
+
+  const removeData = async (key) => {
+    await WaAuthState.delete(botId, key);
+  };
+
+  // Load or init creds
+  let creds = await readData('creds');
+  if (!creds) {
+    creds = initAuthCreds();
+    await writeData('creds', creds);
+  }
+
+  const state = {
+    creds,
+    keys: {
+      get: async (type, ids) => {
+        const result = {};
+        for (const id of ids) {
+          const val = await readData(`${type}:${id}`);
+          if (val) {
+            if (type === 'app-state-sync-key' && val.keyData) {
+              result[id] = proto.Message.AppStateSyncKeyData.fromObject(val);
+            } else {
+              result[id] = val;
+            }
+          }
+        }
+        return result;
+      },
+      set: async (data) => {
+        const tasks = [];
+        for (const [category, entries] of Object.entries(data)) {
+          for (const [id, value] of Object.entries(entries)) {
+            const key = `${category}:${id}`;
+            if (value) {
+              tasks.push(writeData(key, value));
+            } else {
+              tasks.push(removeData(key));
+            }
+          }
+        }
+        await Promise.all(tasks);
+      },
+    },
+  };
+
+  const saveCreds = async () => {
+    await writeData('creds', state.creds);
+  };
+
+  return { state, saveCreds };
 }
 
 function getSession(botId) {
@@ -311,7 +363,7 @@ async function sendProductImages(socket, senderJid, productId, botId, msgStore) 
     const sentMsg = await socket.sendMessage(senderJid, imageContent);
     if (sentMsg?.key?.id && msgStore) {
       msgStore.set(sentMsg.key.id, imageContent);
-      saveMsgStore(botId, msgStore);
+      saveMsgStore(botId, sentMsg.key.id, imageContent);
     }
     console.log(`[Bot ${botId}] [IMAGENES] ✅ Imagen enviada a ${phone}`);
   } catch(e) {
@@ -352,7 +404,7 @@ async function sendOfferImages(socket, senderJid, productId, botId, msgStore) {
     const sentMsg = await socket.sendMessage(senderJid, imageContent);
     if (sentMsg?.key?.id && msgStore) {
       msgStore.set(sentMsg.key.id, imageContent);
-      saveMsgStore(botId, msgStore);
+      saveMsgStore(botId, sentMsg.key.id, imageContent);
     }
     console.log(`[Bot ${botId}] [OFERTA] ✅ Foto de oferta enviada a ${phone}`);
   } catch(e) {
@@ -408,7 +460,7 @@ async function sendTestimonialImages(socket, senderJid, productId, botId, msgSto
     const sentMsg = await socket.sendMessage(senderJid, imageContent);
     if (sentMsg?.key?.id && msgStore) {
       msgStore.set(sentMsg.key.id, imageContent);
-      saveMsgStore(botId, msgStore);
+      saveMsgStore(botId, sentMsg.key.id, imageContent);
     }
     console.log(`[Bot ${botId}] [TESTIMONIOS] ✅ Testimonio enviado a ${phone}`);
   } catch(e) {
@@ -467,11 +519,10 @@ async function startSession(botId) {
   session.qrDataURL = null;
   session.error = null;
 
-  const authDir = path.join(SESSIONS_DIR, `bot_${botId}`);
-  const { state, saveCreds } = await useMultiFileAuthState(authDir);
+  const { state, saveCreds } = await usePostgresAuthState(botId);
   const { version } = await fetchLatestBaileysVersion();
 
-  const msgStore = loadMsgStore(botId);
+  const msgStore = await loadMsgStore(botId);
 
   const socket = makeWASocket({
     version,
@@ -520,7 +571,7 @@ async function startSession(botId) {
         session.status = 'disconnected';
         session.phone = null;
         session.socket = null;
-        try { fs.rmSync(authDir, { recursive: true, force: true }); } catch(e) {}
+        try { await WaAuthState.deleteAll(botId); } catch(e) {}
         await Bots.update(botId, { wa_status: 'disconnected', wa_phone: '' });
         return;
       }
@@ -759,7 +810,7 @@ async function startSession(botId) {
           if (sentMsg?.key?.id) {
             msgStore.set(sentMsg.key.id, { conversation: msgText });
             if (msgStore.size > 500) { const fk = msgStore.keys().next().value; msgStore.delete(fk); }
-            saveMsgStore(botId, msgStore);
+            saveMsgStore(botId, sentMsg.key.id, { conversation: msgText });
           }
           pushBotMsg(msgText);
           console.log(`[Bot ${botId}] [FLUJO] ✅ Mensaje ${i+1}/${msgs.length} enviado (${msgText.length} chars): "${msgText.substring(0, 60)}..."`);
@@ -822,7 +873,7 @@ async function startSession(botId) {
               const sentMsg = await socket.sendMessage(reportJid, { text: reportTextToSend });
               if (sentMsg?.key?.id && msgStore) {
                 msgStore.set(sentMsg.key.id, { conversation: reportTextToSend });
-                saveMsgStore(botId, msgStore);
+                saveMsgStore(botId, sentMsg.key.id, { conversation: reportTextToSend });
               }
               console.log(`[Bot ${botId}] [REPORTE] ✅ REPORTE enviado a ${cleanNumber}`);
             } catch(e) {
@@ -1047,7 +1098,7 @@ async function processFollowUps() {
           const sentMsg = await session.socket.sendMessage(jid, { text: followUp });
           if (sentMsg?.key?.id && session.msgStore) {
             session.msgStore.set(sentMsg.key.id, { conversation: followUp });
-            saveMsgStore(bot.id, session.msgStore);
+            saveMsgStore(bot.id, sentMsg.key.id, { conversation: followUp });
           }
 
           // Guardar en bandeja del panel para que sea visible
@@ -1611,8 +1662,7 @@ app.post('/api/wa/sessions/:botId/disconnect', requireAuth, requireBotOwner, asy
     try { await session.socket.logout(); } catch(e) { try { session.socket.end(); } catch(e2) {} }
     session.socket = null;
   }
-  const authDir = path.join(SESSIONS_DIR, `bot_${botId}`);
-  try { fs.rmSync(authDir, { recursive: true, force: true }); } catch(e) {}
+  try { await WaAuthState.deleteAll(botId); } catch(e) {}
   session.status = 'disconnected';
   session.qr = null; session.qrDataURL = null; session.phone = null; session.error = null; session.retryCount = 0;
   await Bots.update(botId, { wa_status: 'disconnected', wa_phone: '' });
@@ -1631,7 +1681,7 @@ app.post('/api/wa/sessions/:botId/send', requireAuth, requireBotOwner, async (re
     const sentMsg = await session.socket.sendMessage(jid, { text: message });
     if (sentMsg?.key?.id && session.msgStore) {
       session.msgStore.set(sentMsg.key.id, { conversation: message });
-      saveMsgStore(botId, session.msgStore);
+      saveMsgStore(botId, sentMsg.key.id, { conversation: message });
     }
     res.json({ success: true, to: phone });
   } catch(e) {
@@ -1663,20 +1713,18 @@ app.post('/api/wa/sessions/:botId/messages/read', requireAuth, requireBotOwner, 
   res.json({ ok: true });
 });
 
-app.post('/api/wa/sessions/:botId/fix-encryption', requireAuth, requireBotOwner, (req, res) => {
+app.post('/api/wa/sessions/:botId/fix-encryption', requireAuth, requireBotOwner, async (req, res) => {
   const { botId } = req.params;
-  const authDir = path.join(SESSIONS_DIR, `bot_${botId}`);
-  if (!fs.existsSync(authDir)) return res.status(404).json({ error: 'No hay sesion' });
-  const files = fs.readdirSync(authDir);
-  let cleaned = 0;
-  for (const file of files) {
-    if (file.startsWith('session-') || file.startsWith('sender-key-')) {
-      fs.unlinkSync(path.join(authDir, file));
-      cleaned++;
-    }
-  }
-  console.log(`[Bot ${botId}] Limpiados ${cleaned} archivos de sesion de señal`);
-  res.json({ ok: true, cleaned });
+  const hasCreds = await WaAuthState.hasCreds(botId);
+  if (!hasCreds) return res.status(404).json({ error: 'No hay sesion' });
+  // Limpiar claves de señal (session- y sender-key-) de la DB, preservar creds
+  const { pool } = require('./database');
+  const { rowCount } = await pool.query(
+    `DELETE FROM wa_auth_state WHERE bot_id = $1 AND (data_key LIKE 'session:%' OR data_key LIKE 'sender-key:%')`,
+    [botId]
+  );
+  console.log(`[Bot ${botId}] Limpiadas ${rowCount} claves de señal de DB`);
+  res.json({ ok: true, cleaned: rowCount });
 });
 
 app.get('/api/wa/sessions', requireAdmin, (req, res) => {
@@ -1739,17 +1787,15 @@ async function migrateExistingBots() {
 //  RESTAURAR SESIONES AL INICIAR
 // ══════════════════════════════════════════════════════════════════════════════
 async function restoreSessions() {
-  if (!fs.existsSync(SESSIONS_DIR)) return;
-  const dirs = fs.readdirSync(SESSIONS_DIR).filter(d =>
-    d.startsWith('bot_') && fs.statSync(path.join(SESSIONS_DIR, d)).isDirectory()
-  );
-  for (const dir of dirs) {
-    const botId = dir.replace('bot_', '');
-    const credsFile = path.join(SESSIONS_DIR, dir, 'creds.json');
-    if (fs.existsSync(credsFile)) {
-      console.log(`[Restore] Restaurando sesion bot ${botId}...`);
-      try { await startSession(botId); } catch(e) {
-        console.error(`[Restore] Error restaurando bot ${botId}:`, e.message);
+  // Restaurar sesiones desde la base de datos (credenciales persistidas en PostgreSQL)
+  const allBots = await Bots.getAll();
+  for (const bot of allBots) {
+    if (!bot.active) continue;
+    const hasCreds = await WaAuthState.hasCreds(bot.id);
+    if (hasCreds) {
+      console.log(`[Restore] Restaurando sesion bot ${bot.id} (${bot.name}) desde DB...`);
+      try { await startSession(bot.id); } catch(e) {
+        console.error(`[Restore] Error restaurando bot ${bot.id}:`, e.message);
       }
     }
   }
@@ -1827,10 +1873,10 @@ app.listen(PORT, async () => {
     const prods = await Products.findByBot(b.id);
     console.log(`[STARTUP]    Bot "${b.name}" (${b.id}) | Activo: ${b.active ? 'SI' : 'NO'} | Productos: ${prods.length} | API Key: ${b.openai_key ? 'SI' : 'NO'} | Reporte: ${b.report_number || 'N/A'}`);
   }
-  console.log('[STARTUP] Directorios:');
-  console.log(`[STARTUP]   Sessions: ${SESSIONS_DIR} (${fs.existsSync(SESSIONS_DIR) ? 'OK' : 'CREADO'})`);
-  console.log(`[STARTUP]   Uploads: ${UPLOADS_DIR} (${fs.existsSync(UPLOADS_DIR) ? 'OK' : 'CREADO'})`);
-  console.log(`[STARTUP]   MsgStores: ${MSG_STORE_DIR} (${fs.existsSync(MSG_STORE_DIR) ? 'OK' : 'CREADO'})`);
+  console.log('[STARTUP] Almacenamiento:');
+  console.log(`[STARTUP]   Sessions WA: PostgreSQL (persistente)`);
+  console.log(`[STARTUP]   MsgStores: PostgreSQL (persistente)`);
+  console.log(`[STARTUP]   Archivos: Supabase Storage (persistente)`);
 
   await migrateExistingBots();
   await restoreSessions();
