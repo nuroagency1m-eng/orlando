@@ -268,6 +268,21 @@ select.inp{cursor:pointer;appearance:none}
   .inp{padding:12px 14px;font-size:14px;border-radius:12px;-webkit-appearance:none}
   .ta{min-height:100px}
   .lbl{font-size:11px}
+
+  /* Tab bar horizontal scroll */
+  .tab-bar-scroll{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 8px}
+  .tab-bar-scroll::-webkit-scrollbar{display:none}
+
+  /* Safe area for notch phones */
+  .bottom-nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+
+  /* Card header truncate */
+  .card-header span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Grids single column */
+  .grid-2{grid-template-columns:1fr}
+  .grid-2-dash{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr}
 }
 @media(max-width:480px){
   .stats{grid-template-columns:1fr}
@@ -279,6 +294,11 @@ select.inp{cursor:pointer;appearance:none}
   /* Price/limit grids single column */
   .grid-3{grid-template-columns:1fr}
   .grid-2{grid-template-columns:1fr}
+
+  /* Stat cards more compact */
+  .stat-card{padding:12px}
+  .stat-value{font-size:20px}
+  .stat-icon{width:30px;height:30px;border-radius:8px;margin-bottom:6px}
 }
 </style>
 </head>
@@ -1386,7 +1406,7 @@ const BotDetail = ({bot, onBack, onUpdate}) => {
           <StatusDot active={bot.active}/>
         </div>
       </div>
-      <div style={{background:"var(--bg-card)",border:"1px solid var(--border)",padding:"4px 8px",marginBottom:20,display:"flex",gap:2,overflowX:"auto",borderRadius:"var(--radius-lg)"}}>
+      <div className="tab-bar-scroll" style={{background:"var(--bg-card)",border:"1px solid var(--border)",marginBottom:20,borderRadius:"var(--radius-lg)"}}>
         {TABS.map(t=>(<button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
           <t.Icon s={14} c={tab===t.id?"var(--cyan-dark)":"var(--text-secondary)"}/> {t.label}
         </button>))}
@@ -2006,6 +2026,10 @@ function App() {
                 {item.label}
               </button>
             ))}
+            <button className="bottom-nav-item" onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{color:'rgba(239,68,68,0.7)'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(239,68,68,0.7)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Salir
+            </button>
           </div>
         </div>
       </div>

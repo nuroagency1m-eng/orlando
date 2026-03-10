@@ -227,6 +227,12 @@ body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',
   .stat-value{font-size:24px}
   .stat-label{font-size:11px}
   .stat-icon{width:34px;height:34px;margin-bottom:8px}
+
+  /* Safe area for notch phones */
+  .bottom-nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+
+  /* Card header truncate */
+  .card-header span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 @media(max-width:480px){
   .stats{grid-template-columns:1fr}
@@ -235,6 +241,9 @@ body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',
   .header-title{font-size:15px}
   .card-header{padding:12px 14px}
   .card-header span{font-size:13px}
+  .stat-card{padding:12px}
+  .stat-value{font-size:20px}
+  .stat-icon{width:30px;height:30px;border-radius:8px;margin-bottom:6px}
 }
 </style>
 </head>
@@ -791,6 +800,9 @@ function AdminApp() {
           </button>
           <button className={`bottom-nav-item${page==='bots'?' active':''}`} onClick={()=>navigate('bots')}>
             <Icon name="bot" size={20}/> Agentes
+          </button>
+          <button className="bottom-nav-item" onClick={logout} style={{color:'rgba(239,68,68,0.7)'}}>
+            <Icon name="logout" size={20} color="rgba(239,68,68,0.7)"/> Salir
           </button>
         </div>
       </nav>
