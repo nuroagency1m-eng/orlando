@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadMediaMessage } = require('@whiskeysockets/baileys');
-const FormData = require('form-data');
+// form-data npm ya no se usa — se usa el FormData nativo de Node.js 18+
 const QRCode = require('qrcode');
 const pino = require('pino');
 const path = require('path');
@@ -473,8 +473,9 @@ async function sendTestimonialImages(socket, senderJid, productId, botId, msgSto
 // ══════════════════════════════════════════════════════════════════════════════
 async function transcribeAudio(audioBuffer, openaiKey) {
   try {
+    // Usar FormData nativo (Web API) — compatible con fetch nativo de Node.js
     const form = new FormData();
-    form.append('file', audioBuffer, { filename: 'audio.ogg', contentType: 'audio/ogg' });
+    form.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg');
     form.append('model', 'whisper-1');
     form.append('language', 'es');
 
@@ -482,7 +483,6 @@ async function transcribeAudio(audioBuffer, openaiKey) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiKey}`,
-        ...form.getHeaders(),
       },
       body: form,
     });
@@ -1897,7 +1897,7 @@ app.listen(PORT, async () => {
   console.log('[STARTUP] Verificando modulos...');
   console.log(`[STARTUP] ✅ Express: OK`);
   console.log(`[STARTUP] ✅ Baileys: OK (downloadMediaMessage: ${typeof downloadMediaMessage === 'function' ? 'SI' : 'NO'})`);
-  console.log(`[STARTUP] ✅ FormData: OK (${typeof FormData === 'function' ? 'SI' : 'NO'})`);
+  console.log(`[STARTUP] ✅ FormData: OK (nativo: ${typeof globalThis.FormData === 'function' ? 'SI' : 'NO'})`);
   console.log(`[STARTUP] ✅ Database: Conectando a PostgreSQL...`);
   await initDatabase();
   console.log(`[STARTUP] ✅ Database: OK (PostgreSQL/Supabase)`);
