@@ -605,12 +605,27 @@ async function startSession(botId) {
         // Update DB
         await Bots.update(botId, { wa_status: 'connected', wa_phone: session.phone, wa_last_connected: session.lastConnected });
       }
+
+      // IMPORTANTE: Baileys buferea eventos (messages.upsert) cuando hay creds existentes.
+      // El buffer solo se libera con el handler 'CB:ib,,offline' que a veces no llega.
+      // Forzar flush del buffer despues de conectar para asegurar que los mensajes se procesan.
+      setTimeout(() => {
+        try {
+          if (typeof socket.ev.flush === 'function') {
+            socket.ev.flush();
+            console.log(`[Bot ${botId}] Buffer de eventos flushed (seguridad post-conexion)`);
+          }
+        } catch(flushErr) {
+          console.error(`[Bot ${botId}] Error en flush:`, flushErr.message);
+        }
+      }, 5000);
     }
   });
 
   // Evento: Mensajes entrantes
   socket.ev.on('messages.upsert', async ({ messages: msgs }) => {
     for (const msg of msgs) {
+      try {
       if (msg.key.remoteJid === 'status@broadcast') continue;
       if (msg.key.fromMe) continue;
       const content = extractMessageContent(msg);
@@ -943,6 +958,10 @@ async function startSession(botId) {
       } catch(e) {
         console.error(`[Bot ${botId}] [FLUJO] ❌ Error respondiendo a ${pushName}:`, e.message);
         try { await socket.sendPresenceUpdate('paused', senderJid); } catch(e2) {}
+      }
+      } catch(msgErr) {
+        console.error(`[Bot ${botId}] [MSG] Error procesando mensaje:`, msgErr.message);
+        if (msgErr.stack) console.error(msgErr.stack);
       }
     }
   });
