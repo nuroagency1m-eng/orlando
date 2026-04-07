@@ -1088,8 +1088,8 @@ async function processFollowUps() {
       if (!session || session.status !== 'connected' || !session.socket) continue;
 
       botsChecked++;
-      const seg1 = bot.seg1 || 15;
-      const seg2 = bot.seg2 || 400;
+      const seg1 = parseInt(bot.seg1) || 15;
+      const seg2 = parseInt(bot.seg2) || 400;
       const pending = await Conversations.getPendingFollowUps(bot.id, seg1, seg2);
       totalPending += pending.length;
 
@@ -1102,6 +1102,21 @@ async function processFollowUps() {
         const jid = conv.phone + '@' + (conv.jid_suffix || 's.whatsapp.net');
         const fallbackMsg = FOLLOW_UP_MESSAGES[conv.follow_up_count] || FOLLOW_UP_MESSAGES[0];
 
+        // Re-verificar estado antes de enviar (el cliente pudo responder entre query y envio)
+        const freshConv = await Conversations.findByBotAndPhone(bot.id, conv.phone);
+        if (!freshConv || freshConv.follow_up_count !== conv.follow_up_count) {
+          console.log(`[Bot ${bot.id}] [SEGUIMIENTO] ⏭️ Saltando seguimiento a ${conv.push_name} (+${conv.phone}) — estado cambio (count: ${conv.follow_up_count} → ${freshConv?.follow_up_count})`);
+          continue;
+        }
+        if (freshConv.status !== 'active') {
+          console.log(`[Bot ${bot.id}] [SEGUIMIENTO] ⏭️ Saltando seguimiento a ${conv.push_name} (+${conv.phone}) — conversacion ${freshConv.status}`);
+          continue;
+        }
+        if (new Date(freshConv.last_message_at) > new Date(freshConv.last_bot_reply_at)) {
+          console.log(`[Bot ${bot.id}] [SEGUIMIENTO] ⏭️ Saltando seguimiento a ${conv.push_name} (+${conv.phone}) — cliente respondio`);
+          continue;
+        }
+
         console.log(`[Bot ${bot.id}] [SEGUIMIENTO] 📤 Preparando seguimiento #${followUpNum} para ${conv.push_name} (+${conv.phone}) | Ultimo reply bot: ${conv.last_bot_reply_at}`);
 
         try {
@@ -1113,6 +1128,14 @@ async function processFollowUps() {
             await session.socket.sendPresenceUpdate('paused', jid);
           } catch(typingErr) {
             console.log(`[Bot ${bot.id}] [SEGUIMIENTO] ⚠️ Error en typing indicator (continuando): ${typingErr.message}`);
+          }
+
+          // Re-verificar una vez mas despues del typing delay (3s adicionales pasaron)
+          const recheck = await Conversations.findByBotAndPhone(bot.id, conv.phone);
+          if (!recheck || recheck.follow_up_count !== conv.follow_up_count || new Date(recheck.last_message_at) > new Date(recheck.last_bot_reply_at)) {
+            console.log(`[Bot ${bot.id}] [SEGUIMIENTO] ⏭️ Cancelado seguimiento a ${conv.push_name} (+${conv.phone}) — cliente respondio durante typing`);
+            try { await session.socket.sendPresenceUpdate('paused', jid); } catch(e) {}
+            continue;
           }
 
           // Generar follow-up con IA (sin contaminar historial)

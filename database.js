@@ -475,13 +475,15 @@ const Conversations = {
       WHERE bot_id = $1 AND status = 'active'
       AND last_bot_reply_at IS NOT NULL
       AND last_message_at <= last_bot_reply_at
+      AND last_bot_reply_at > NOW() - INTERVAL '48 hours'
       AND (
-        (follow_up_count = 0 AND last_bot_reply_at + ($2 || ' minutes')::INTERVAL <= NOW())
+        (follow_up_count = 0 AND last_bot_reply_at + ($2::INTEGER * INTERVAL '1 minute') <= NOW())
         OR
-        (follow_up_count = 1 AND last_bot_reply_at + ($3 || ' minutes')::INTERVAL <= NOW())
+        (follow_up_count = 1 AND last_bot_reply_at + ($3::INTEGER * INTERVAL '1 minute') <= NOW())
       )
       AND follow_up_count < 2
-    `, [botId, String(seg1Minutes), String(seg2Minutes)]);
+      ORDER BY last_bot_reply_at ASC
+    `, [botId, parseInt(seg1Minutes) || 15, parseInt(seg2Minutes) || 400]);
     return rows;
   },
 };
