@@ -7,7 +7,7 @@ const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, botToConfig, botToFrontend, initDatabase } = require('./database');
+const { Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, Recompras, botToConfig, botToFrontend, initDatabase } = require('./database');
 const { generateToken, requireAuth, requireAdmin } = require('./auth');
 
 const app = express();
@@ -1869,6 +1869,66 @@ async function restoreSessions() {
     }
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  RECOMPRAS API
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Usuario: subir comprobante de recompra
+app.post('/api/recompras', requireAuth, memUpload.single('comprobante'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se subio comprobante' });
+  try {
+    const url = await uploadToSupabase('invoices', req.file.buffer, req.file.mimetype, req.file.originalname);
+    const recompra = await Recompras.create(req.user.id, url);
+    console.log(`[RECOMPRA] Nueva recompra de ${req.user.nombre} ${req.user.apellido} (${req.user.id})`);
+    res.json({ ok: true, recompra });
+  } catch(e) {
+    console.error('[RECOMPRA] Error subiendo:', e.message);
+    res.status(500).json({ error: 'Error al subir comprobante' });
+  }
+});
+
+// Usuario: ver mis recompras
+app.get('/api/recompras', requireAuth, async (req, res) => {
+  const recompras = await Recompras.findByUser(req.user.id);
+  res.json(recompras);
+});
+
+// Usuario: verificar si tiene recompra activa
+app.get('/api/recompras/active', requireAuth, async (req, res) => {
+  const active = await Recompras.getActiveByUser(req.user.id);
+  res.json({ active: !!active, recompra: active });
+});
+
+// Admin: ver todas las recompras
+app.get('/api/admin/recompras', requireAdmin, async (req, res) => {
+  const recompras = await Recompras.getAll();
+  res.json(recompras);
+});
+
+// Admin: aprobar recompra
+app.put('/api/admin/recompras/:id/approve', requireAdmin, async (req, res) => {
+  const recompra = await Recompras.findById(req.params.id);
+  if (!recompra) return res.status(404).json({ error: 'Recompra no encontrada' });
+  const updated = await Recompras.approve(req.params.id, req.user.id);
+  // Activar usuario si estaba suspendido por falta de recompra
+  const user = await Users.findById(recompra.user_id);
+  if (user && user.status === 'suspendido') {
+    await Users.update(recompra.user_id, { status: 'activo' });
+    console.log(`[RECOMPRA] Usuario ${user.nombre} ${user.apellido} reactivado por recompra aprobada`);
+  }
+  console.log(`[RECOMPRA] Aprobada: ${recompra.user_nombre} ${recompra.user_apellido} | 30 dias desde ahora | Por: ${req.user.nombre}`);
+  res.json({ ok: true, recompra: updated });
+});
+
+// Admin: rechazar recompra
+app.put('/api/admin/recompras/:id/reject', requireAdmin, async (req, res) => {
+  const recompra = await Recompras.findById(req.params.id);
+  if (!recompra) return res.status(404).json({ error: 'Recompra no encontrada' });
+  const updated = await Recompras.reject(req.params.id, req.user.id, req.body.notas || '');
+  console.log(`[RECOMPRA] Rechazada: ${recompra.user_nombre} ${recompra.user_apellido} | Por: ${req.user.nombre}`);
+  res.json({ ok: true, recompra: updated });
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SALES API (Ventas confirmadas)

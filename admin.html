@@ -283,6 +283,7 @@ const Icon = ({name, size=18, color='currentColor'}) => {
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+    refresh: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
@@ -502,11 +503,12 @@ function AdminApp() {
   const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [recompras, setRecompras] = useState([]);
 
   const load = async () => {
     try {
-      const [u, b] = await Promise.all([api('/admin/users'), api('/admin/bots')]);
-      setUsers(u); setBots(b);
+      const [u, b, r] = await Promise.all([api('/admin/users'), api('/admin/bots'), api('/admin/recompras')]);
+      setUsers(u); setBots(b); setRecompras(Array.isArray(r) ? r : []);
     } catch(e) { console.error('[Admin] Error cargando datos:', e.message); }
     setLoading(false);
   };
@@ -566,8 +568,8 @@ function AdminApp() {
     const map = {
       dashboard:'Dashboard', users:'Todos los Usuarios', pending:'Usuarios Pendientes',
       'active-users':'Usuarios Activos', suspended:'Usuarios Suspendidos',
-      blocked:'Usuarios Bloqueados', bots:'Agentes del Sistema', approval:'Aprobacion de Usuarios',
-      settings:'Configuraciones'
+      blocked:'Usuarios Bloqueados', bots:'Agentes del Sistema', recompras:'Recompras',
+      approval:'Aprobacion de Usuarios', settings:'Configuraciones'
     };
     return map[page] || 'Dashboard';
   };
@@ -680,6 +682,10 @@ function AdminApp() {
           <button className={`sidebar-item${page==='bots'?' active':''}`} onClick={()=>navigate('bots')}>
             <Icon name="bot" size={18}/> Agentes del Sistema
             <span className="count">{bots.length}</span>
+          </button>
+          <button className={`sidebar-item${page==='recompras'?' active':''}`} onClick={()=>navigate('recompras')}>
+            <Icon name="refresh" size={18}/> Recompras
+            {recompras.filter(r=>r.status==='pendiente').length > 0 && <span className="count warn">{recompras.filter(r=>r.status==='pendiente').length}</span>}
           </button>
           <button className={`sidebar-item${page==='approval'?' active':''}`} onClick={()=>navigate('approval')}>
             <Icon name="approval" size={18}/> Aprobacion
@@ -812,6 +818,70 @@ function AdminApp() {
             </div>
           )}
 
+          {/* RECOMPRAS */}
+          {page === 'recompras' && (
+            <div className="card" style={{animation:'fadeIn 0.2s'}}>
+              <div className="card-header">
+                <Icon name="refresh" size={16} color="var(--text-secondary)"/>
+                <span style={{fontWeight:700,fontSize:14}}>{recompras.length} recompra(s)</span>
+                <span style={{marginLeft:'auto',fontSize:12,color:'var(--warn)',fontWeight:600}}>
+                  {recompras.filter(r=>r.status==='pendiente').length} pendiente(s)
+                </span>
+              </div>
+              {recompras.length === 0 ? (
+                <div style={{padding:40,textAlign:'center',color:'var(--text-light)'}}>No hay recompras</div>
+              ) : recompras.map(r => (
+                <div className="table-row" key={r.id} style={{flexDirection:'column',gap:8}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,width:'100%'}}>
+                    <div className="avatar" style={{background:'rgba(62,184,240,0.1)',border:'1.5px solid rgba(62,184,240,0.25)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {(r.user_nombre||'?')[0]}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+                        <span style={{fontWeight:700,fontSize:13}}>{r.user_nombre} {r.user_apellido}</span>
+                        <span className={`badge ${r.status==='pendiente'?'badge-pending':r.status==='aprobada'?'badge-active':'badge-blocked'}`}>
+                          {r.status==='pendiente'?'Pendiente':r.status==='aprobada'?'Aprobada':'Rechazada'}
+                        </span>
+                      </div>
+                      <div style={{color:'var(--text-secondary)',fontSize:12,display:'flex',gap:12,flexWrap:'wrap'}}>
+                        <span>Fase: {r.usuario_fase||'—'}</span>
+                        <span>Subido: {new Date(r.fecha_subida).toLocaleDateString('es-BO')}</span>
+                        {r.fecha_inicio && <span>Inicio: {new Date(r.fecha_inicio).toLocaleDateString('es-BO')}</span>}
+                        {r.fecha_limite && <span>Vence: {new Date(r.fecha_limite).toLocaleDateString('es-BO')}</span>}
+                      </div>
+                    </div>
+                    {r.comprobante_url && (
+                      <a href={r.comprobante_url} target="_blank" rel="noopener" style={{color:'var(--cyan)',fontSize:11,fontWeight:700,textDecoration:'none',flexShrink:0}}>Ver</a>
+                    )}
+                  </div>
+                  <div className="row-actions" style={{display:'flex',gap:6,justifyContent:'flex-end'}}>
+                    {r.status==='pendiente' && <>
+                      <button className="btn btn-success" onClick={async()=>{
+                        try { await api(`/admin/recompras/${r.id}/approve`,'PUT'); load(); showToast('Recompra aprobada — 30 dias de acceso'); } catch(e){ showToast('Error: '+e.message); }
+                      }}>Aprobar</button>
+                      <button className="btn btn-danger" onClick={async()=>{
+                        const notas = prompt('Motivo del rechazo (opcional):') || '';
+                        try { await api(`/admin/recompras/${r.id}/reject`,'PUT',{notas}); load(); showToast('Recompra rechazada'); } catch(e){ showToast('Error: '+e.message); }
+                      }}>Rechazar</button>
+                    </>}
+                    {r.status==='rechazada' && (
+                      <button className="btn btn-success" onClick={async()=>{
+                        try { await api(`/admin/recompras/${r.id}/approve`,'PUT'); load(); showToast('Recompra aprobada — 30 dias de acceso'); } catch(e){ showToast('Error: '+e.message); }
+                      }}>Aprobar</button>
+                    )}
+                    {r.status==='aprobada' && r.fecha_limite && new Date(r.fecha_limite) < new Date() && (
+                      <span style={{fontSize:11,color:'var(--danger)',fontWeight:700}}>VENCIDA</span>
+                    )}
+                    {r.status==='aprobada' && r.fecha_limite && new Date(r.fecha_limite) >= new Date() && (
+                      <span style={{fontSize:11,color:'var(--success)',fontWeight:700}}>VIGENTE</span>
+                    )}
+                  </div>
+                  {r.notas && <div style={{fontSize:11,color:'var(--danger)',fontStyle:'italic'}}>Nota: {r.notas}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* SETTINGS */}
           {page === 'settings' && (
             <div className="card" style={{animation:'fadeIn 0.2s'}}>
@@ -845,6 +915,11 @@ function AdminApp() {
           </button>
           <button className={`bottom-nav-item${page==='bots'?' active':''}`} onClick={()=>navigate('bots')}>
             <Icon name="bot" size={20}/> Agentes
+          </button>
+          <button className={`bottom-nav-item${page==='recompras'?' active':''}`} onClick={()=>navigate('recompras')}>
+            <Icon name="refresh" size={20}/>
+            <span>Recompras</span>
+            {recompras.filter(r=>r.status==='pendiente').length > 0 && <span className="nav-dot show"></span>}
           </button>
           <button className="bottom-nav-item" onClick={logout} style={{color:'rgba(239,68,68,0.7)'}}>
             <Icon name="logout" size={20} color="rgba(239,68,68,0.7)"/> Salir

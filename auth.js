@@ -54,6 +54,19 @@ async function requireAuth(req, res, next) {
     return res.status(403).json({ error: 'Cuenta no activa', status: user.status });
   }
   req.user = user;
+
+  // Verificar recompra vigente (excepto admin y rutas de recompras/perfil/auth)
+  const path = req.originalUrl || req.url;
+  const exemptPaths = ['/api/recompras', '/api/auth/', '/api/user/profile'];
+  const isExempt = user.role === 'admin' || exemptPaths.some(p => path.startsWith(p));
+  if (!isExempt) {
+    const { Recompras } = require('./database');
+    const hasActive = await Recompras.hasActiveRecompra(user.id);
+    if (!hasActive) {
+      return res.status(403).json({ error: 'Recompra vencida o no aprobada', recompra_required: true });
+    }
+  }
+
   next();
 }
 

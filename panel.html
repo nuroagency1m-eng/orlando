@@ -645,6 +645,7 @@ const SIDEBAR_ICONS = {
   logout:'<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   hamburger:'<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
   sales:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  recompras:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
 };
 
 // ─── PROFILE MODAL ──
@@ -1554,7 +1555,100 @@ const PageSoporte = () => (
   </div>
 );
 
-// ─── PAGE: CONFIG ──
+// ─── PAGE: MIS RECOMPRAS ──
+const PageRecompras = () => {
+  const [recompras, setRecompras] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const load = async () => {
+    try {
+      const res = await authFetch(API + '/recompras');
+      const data = await res.json();
+      setRecompras(Array.isArray(data) ? data : []);
+    } catch(e) {} finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const upload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true); setMsg('');
+    try {
+      const form = new FormData();
+      form.append('comprobante', file);
+      const res = await fetch(API + '/recompras', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.ok) { setMsg('Comprobante subido correctamente'); load(); }
+      else setMsg(data.error || 'Error al subir');
+    } catch(er) { setMsg('Error al subir comprobante'); }
+    finally { setUploading(false); e.target.value = ''; }
+  };
+
+  const statusBadge = (s) => {
+    const map = {pendiente:{bg:'rgba(245,158,11,0.12)',c:'#f59e0b',t:'Pendiente'},aprobada:{bg:'rgba(34,197,94,0.12)',c:'#22c55e',t:'Aprobada'},rechazada:{bg:'rgba(239,68,68,0.12)',c:'#ef4444',t:'Rechazada'}};
+    const b = map[s] || map.pendiente;
+    return <span style={{background:b.bg,color:b.c,padding:'3px 10px',borderRadius:8,fontSize:11,fontWeight:700}}>{b.t}</span>;
+  };
+
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('es-BO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+  return (
+    <div style={{animation:"fadeIn 0.3s ease"}}>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <IcRefresh s={18} c="var(--cyan)"/>
+            <span style={{fontWeight:700,fontSize:14}}>Mis Recompras</span>
+          </div>
+          <label style={{background:'linear-gradient(135deg,var(--gold),var(--gold-dark))',color:'#000',padding:'8px 18px',borderRadius:10,fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+            <IcPlus s={14} c="#000"/> {uploading ? 'Subiendo...' : 'Subir comprobante'}
+            <input type="file" accept="image/*,.pdf" onChange={upload} style={{display:'none'}} disabled={uploading}/>
+          </label>
+        </div>
+        {msg && <div style={{padding:'8px 16px',fontSize:12,fontWeight:600,color:msg.includes('Error')?'#ef4444':'#22c55e'}}>{msg}</div>}
+      </div>
+
+      {loading ? (
+        <div style={{textAlign:'center',padding:40,color:'var(--text-secondary)'}}>Cargando...</div>
+      ) : recompras.length === 0 ? (
+        <div className="card">
+          <div className="card-body" style={{textAlign:'center',padding:48}}>
+            <p style={{color:'var(--text-secondary)',fontSize:14}}>No tienes recompras registradas.</p>
+            <p style={{color:'var(--text-light)',fontSize:12,marginTop:8}}>Sube tu comprobante mensual para mantener tu acceso activo.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="card">
+          {recompras.map(r => (
+            <div key={r.id} className="table-row" style={{flexDirection:'column',alignItems:'stretch',gap:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  {statusBadge(r.status)}
+                  <span style={{fontSize:13,fontWeight:700}}>Subido: {fmt(r.fecha_subida)}</span>
+                </div>
+                {r.comprobante_url && (
+                  <a href={r.comprobante_url} target="_blank" rel="noopener" style={{color:'var(--cyan)',fontSize:12,fontWeight:600,textDecoration:'none'}}>Ver comprobante</a>
+                )}
+              </div>
+              <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:12,color:'var(--text-secondary)'}}>
+                <span>Inicio: {fmt(r.fecha_inicio)}</span>
+                <span>Vence: {fmt(r.fecha_limite)}</span>
+                {r.notas && <span style={{color:'#ef4444'}}>Nota: {r.notas}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── PAGE: VENTAS CONFIRMADAS ──
 const PageVentas = () => {
   const [sales, setSales] = useState([]);
@@ -1929,6 +2023,7 @@ function App() {
     {id:'dashboard',label:'Dashboard',icon:SIDEBAR_ICONS.dashboard},
     {id:'bot',label:'Mi Agente',icon:SIDEBAR_ICONS.bot},
     {id:'sales',label:'Ventas confirmadas',icon:SIDEBAR_ICONS.sales},
+    {id:'recompras',label:'Mis recompras',icon:SIDEBAR_ICONS.recompras},
     {id:'profile',label:'Mi Perfil',icon:SIDEBAR_ICONS.profile},
   ];
 
@@ -1936,6 +2031,7 @@ function App() {
     dashboard:'Dashboard',
     bot: selectedBot ? selectedBot.name : 'Mi Agente',
     sales:'Ventas confirmadas',
+    recompras:'Mis recompras',
     profile:'Mi Perfil',
   };
 
@@ -1943,6 +2039,7 @@ function App() {
     dashboard:'Vista general de tu cuenta',
     bot:'Gestiona tu agente',
     sales:'Todas las ventas reportadas por tus agentes',
+    recompras:'Historial de recompras mensuales',
     profile:'Informacion personal',
   };
 
@@ -2057,6 +2154,7 @@ function App() {
             </div>
           )}
           {page==='sales' && <PageVentas/>}
+          {page==='recompras' && <PageRecompras/>}
         </div>
 
         {/* Bottom Nav (mobile) */}
@@ -2066,6 +2164,7 @@ function App() {
               {id:'dashboard',label:'Dashboard',Icon:IcHome},
               {id:'bot',label:'Agente',Icon:IcMsg},
               {id:'sales',label:'Ventas',Icon:IcStar},
+              {id:'recompras',label:'Recompras',Icon:IcRefresh},
               {id:'profile',label:'Perfil',Icon:IcUser},
             ].map(item=>(
               <button key={item.id} className={`bottom-nav-item${page===item.id?' active':''}`}

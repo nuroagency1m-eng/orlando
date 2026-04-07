@@ -129,6 +129,19 @@ async function initDB() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS recompras (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        comprobante_url TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pendiente',
+        fecha_subida TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        fecha_aprobacion TIMESTAMPTZ DEFAULT NULL,
+        fecha_inicio TIMESTAMPTZ DEFAULT NULL,
+        fecha_limite TIMESTAMPTZ DEFAULT NULL,
+        notas TEXT DEFAULT '',
+        admin_id TEXT DEFAULT ''
+      );
+
       CREATE TABLE IF NOT EXISTS wa_auth_state (
         bot_id TEXT NOT NULL,
         data_key TEXT NOT NULL,
@@ -164,6 +177,7 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_conv_history ON conversation_history(bot_id, phone);
       CREATE INDEX IF NOT EXISTS idx_wa_auth_bot ON wa_auth_state(bot_id);
       CREATE INDEX IF NOT EXISTS idx_wa_msg_bot ON wa_msg_store(bot_id);
+      CREATE INDEX IF NOT EXISTS idx_recompras_user ON recompras(user_id);
     `);
 
     console.log('[DB] ✅ PostgreSQL schema inicializado');
@@ -730,6 +744,75 @@ const WaMsgStore = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  RECOMPRAS (monthly repurchase management)
+// ══════════════════════════════════════════════════════════════════════════════
+const Recompras = {
+  async create(userId, comprobanteUrl) {
+    const id = uuidv4();
+    await pool.query(
+      `INSERT INTO recompras (id, user_id, comprobante_url) VALUES ($1, $2, $3)`,
+      [id, userId, comprobanteUrl]
+    );
+    return this.findById(id);
+  },
+
+  async findById(id) {
+    const { rows } = await pool.query(`
+      SELECT r.*, u.nombre as user_nombre, u.apellido as user_apellido, u.email as user_email, u.usuario_fase
+      FROM recompras r JOIN users u ON r.user_id = u.id WHERE r.id = $1
+    `, [id]);
+    return rows[0] || null;
+  },
+
+  async findByUser(userId) {
+    const { rows } = await pool.query(
+      'SELECT * FROM recompras WHERE user_id = $1 ORDER BY fecha_subida DESC', [userId]
+    );
+    return rows;
+  },
+
+  async getAll() {
+    const { rows } = await pool.query(`
+      SELECT r.*, u.nombre as user_nombre, u.apellido as user_apellido, u.email as user_email, u.usuario_fase
+      FROM recompras r JOIN users u ON r.user_id = u.id
+      ORDER BY r.fecha_subida DESC
+    `);
+    return rows;
+  },
+
+  async approve(id, adminId) {
+    const now = new Date();
+    const limite = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      `UPDATE recompras SET status = 'aprobada', fecha_aprobacion = $1, fecha_inicio = $1, fecha_limite = $2, admin_id = $3 WHERE id = $4`,
+      [now.toISOString(), limite.toISOString(), adminId, id]
+    );
+    return this.findById(id);
+  },
+
+  async reject(id, adminId, notas) {
+    await pool.query(
+      `UPDATE recompras SET status = 'rechazada', fecha_aprobacion = NULL, fecha_inicio = NULL, fecha_limite = NULL, admin_id = $1, notas = $2 WHERE id = $3`,
+      [adminId, notas || '', id]
+    );
+    return this.findById(id);
+  },
+
+  async getActiveByUser(userId) {
+    const { rows } = await pool.query(
+      `SELECT * FROM recompras WHERE user_id = $1 AND status = 'aprobada' AND fecha_limite >= NOW() ORDER BY fecha_limite DESC LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  },
+
+  async hasActiveRecompra(userId) {
+    const active = await this.getActiveByUser(userId);
+    return !!active;
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  INIT — crear tablas + seed admin
 // ══════════════════════════════════════════════════════════════════════════════
 async function initDatabase() {
@@ -738,4 +821,4 @@ async function initDatabase() {
   console.log('[DB] ✅ Base de datos PostgreSQL lista');
 }
 
-module.exports = { pool, Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, botToConfig, botToFrontend, initDatabase };
+module.exports = { pool, Users, Bots, Products, Conversations, Sales, ConversationHistory, WaAuthState, WaMsgStore, Recompras, botToConfig, botToFrontend, initDatabase };
