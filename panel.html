@@ -34,9 +34,9 @@ body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(34,197,94,0.3),0 0 60px rgba(34,197,94,0.08)}50%{box-shadow:0 0 30px rgba(34,197,94,0.5),0 0 80px rgba(34,197,94,0.12)}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@keyframes orbit1{0%{transform:rotate(0deg) translateX(52px) rotate(0deg)}100%{transform:rotate(360deg) translateX(52px) rotate(-360deg)}}
-@keyframes orbit2{0%{transform:rotate(120deg) translateX(52px) rotate(-120deg)}100%{transform:rotate(480deg) translateX(52px) rotate(-480deg)}}
-@keyframes orbit3{0%{transform:rotate(240deg) translateX(52px) rotate(-240deg)}100%{transform:rotate(600deg) translateX(52px) rotate(-600deg)}}
+@keyframes orbit1{0%{transform:rotate(0deg) translateX(62px) rotate(0deg)}100%{transform:rotate(360deg) translateX(62px) rotate(-360deg)}}
+@keyframes orbit2{0%{transform:rotate(120deg) translateX(62px) rotate(-120deg)}100%{transform:rotate(480deg) translateX(62px) rotate(-480deg)}}
+@keyframes orbit3{0%{transform:rotate(240deg) translateX(62px) rotate(-240deg)}100%{transform:rotate(600deg) translateX(62px) rotate(-600deg)}}
 @keyframes coreGlow{0%,100%{box-shadow:0 0 20px rgba(6,182,212,0.2),0 0 60px rgba(6,182,212,0.05)}50%{box-shadow:0 0 30px rgba(6,182,212,0.35),0 0 80px rgba(6,182,212,0.1)}}
 @keyframes ringPulse{0%,100%{opacity:0.15;transform:scale(1)}50%{opacity:0.3;transform:scale(1.05)}}
 @keyframes particleDrift{0%{transform:translateY(0) translateX(0);opacity:0.6}50%{opacity:0.2}100%{transform:translateY(-30px) translateX(10px);opacity:0}}
@@ -2269,7 +2269,7 @@ function App() {
                       <div style={{padding:"32px 24px 20px",display:"flex",flexDirection:"column",alignItems:"center",position:"relative",zIndex:1}}>
 
                         {/* Orbital container */}
-                        <div style={{position:"relative",width:130,height:130,marginBottom:20}}>
+                        <div style={{position:"relative",width:150,height:150,marginBottom:20}}>
                           {/* Orbital ring */}
                           {bot.active && <div style={{position:"absolute",inset:0,borderRadius:"50%",
                             border:"1px solid rgba(6,182,212,0.08)",
@@ -2292,12 +2292,12 @@ function App() {
 
                           {/* Core icon */}
                           <div className="bot-core-icon" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-                            width:72,height:72,borderRadius:20,
+                            width:90,height:90,borderRadius:24,
                             background:bot.active?"linear-gradient(145deg,rgba(6,182,212,0.12),rgba(139,92,246,0.06))":"rgba(55,65,81,0.15)",
                             border:bot.active?"1.5px solid rgba(6,182,212,0.25)":"1.5px solid rgba(55,65,81,0.3)",
                             display:"flex",alignItems:"center",justifyContent:"center",
                             animation:bot.active?"coreGlow 3s ease-in-out infinite":"none"}}>
-                            <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:52,height:52,objectFit:'contain',
+                            <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:68,height:68,objectFit:'contain',
                               opacity:bot.active?1:0.4,
                               filter:bot.active?"drop-shadow(0 2px 12px rgba(6,182,212,0.2))":"none"}}/>
                           </div>
