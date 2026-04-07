@@ -1930,8 +1930,6 @@ function App() {
     {id:'bot',label:'Mi Agente',icon:SIDEBAR_ICONS.bot},
     {id:'sales',label:'Ventas confirmadas',icon:SIDEBAR_ICONS.sales},
     {id:'profile',label:'Mi Perfil',icon:SIDEBAR_ICONS.profile},
-    {id:'config',label:'Configuracion',icon:SIDEBAR_ICONS.settings},
-    {id:'support',label:'Soporte',icon:SIDEBAR_ICONS.support},
   ];
 
   const PAGE_TITLES = {
@@ -1939,8 +1937,6 @@ function App() {
     bot: selectedBot ? selectedBot.name : 'Mi Agente',
     sales:'Ventas confirmadas',
     profile:'Mi Perfil',
-    config:'Configuracion',
-    support:'Soporte',
   };
 
   const PAGE_SUBS = {
@@ -1948,8 +1944,6 @@ function App() {
     bot:'Gestiona tu agente',
     sales:'Todas las ventas reportadas por tus agentes',
     profile:'Informacion personal',
-    config:'Configuracion de la cuenta',
-    support:'Centro de ayuda',
   };
 
   return (
@@ -2063,8 +2057,6 @@ function App() {
             </div>
           )}
           {page==='sales' && <PageVentas/>}
-          {page==='config' && <PageConfig user={user}/>}
-          {page==='support' && <PageSoporte/>}
         </div>
 
         {/* Bottom Nav (mobile) */}
