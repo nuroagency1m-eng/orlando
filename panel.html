@@ -645,15 +645,20 @@ const StatusDot = ({active}) => (
   </span>
 );
 const CardDeco = () => (<>
-  <div style={{position:"absolute",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(62,184,240,0.12),transparent 70%)",top:-60,right:-40,pointerEvents:"none"}}/>
-  <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(62,184,240,0.08),transparent 70%)",bottom:-40,left:20,pointerEvents:"none"}}/>
+  <div style={{position:"absolute",width:220,height:220,borderRadius:"50%",background:"radial-gradient(circle,rgba(62,184,240,0.1),transparent 70%)",top:-80,right:-60,pointerEvents:"none"}}/>
+  <div style={{position:"absolute",width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(139,92,246,0.06),transparent 70%)",bottom:-50,left:-20,pointerEvents:"none"}}/>
+  <div style={{position:"absolute",width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle,rgba(212,175,55,0.04),transparent 70%)",top:"40%",left:"60%",pointerEvents:"none"}}/>
 </>);
 const SecHeader = ({icon:Ic2, label, color}) => (
-  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
-    <div style={{width:34,height:34,borderRadius:10,background:`${color}20`,display:"flex",alignItems:"center",justifyContent:"center",border:`1.5px solid ${color}40`}}>
-      <Ic2 s={16} c={color}/>
+  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+    <div style={{width:38,height:38,borderRadius:12,
+      background:`linear-gradient(145deg,${color}18,${color}08)`,
+      display:"flex",alignItems:"center",justifyContent:"center",
+      border:`1.5px solid ${color}30`,
+      boxShadow:`0 4px 16px ${color}10`}}>
+      <Ic2 s={17} c={color}/>
     </div>
-    <span style={{color:"var(--navy-mid)",fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase"}}>{label}</span>
+    <span style={{color:"var(--text-secondary)",fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase"}}>{label}</span>
   </div>
 );
 
@@ -1430,66 +1435,93 @@ const BotDetail = ({bot, onBack, onUpdate}) => {
   const effectiveTab = tab || (isMobile ? null : "creds");
 
   return (
-    <div>
+    <div style={{animation:"fadeIn 0.3s ease"}}>
       <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
         {(isMobile && tab) ? (
-          <button onClick={()=>setTab(null)} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <IcArrow s={16} c="var(--text)"/> {activeTab?.label || 'Menu'}
+          <button onClick={()=>setTab(null)} style={{background:"rgba(15,23,42,0.6)",backdropFilter:"blur(12px)",border:"1.5px solid rgba(212,175,55,0.15)",borderRadius:12,padding:"9px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:7,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Sequel',system-ui,sans-serif",transition:"all 0.3s"}}>
+            <IcArrow s={16} c="var(--gold)"/> {activeTab?.label || 'Menu'}
           </button>
         ) : (
-          <button onClick={onBack} style={{background:"transparent",border:"1.5px solid var(--border)",borderRadius:10,padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <IcArrow s={16} c="var(--text)"/> Volver
+          <button onClick={onBack} style={{background:"rgba(15,23,42,0.6)",backdropFilter:"blur(12px)",border:"1.5px solid rgba(212,175,55,0.15)",borderRadius:12,padding:"9px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:7,color:"var(--text)",fontWeight:600,fontSize:13,fontFamily:"'Sequel',system-ui,sans-serif",transition:"all 0.3s"}}>
+            <IcArrow s={16} c="var(--gold)"/> Volver
           </button>
         )}
       </div>
-      <div className="navy navy-wave" style={{padding:"22px 24px",marginBottom:24,position:"relative",borderRadius:"var(--radius-lg)"}}>
+
+      {/* ── HERO CARD ── */}
+      <div className="navy navy-wave" style={{padding:"28px 28px 24px",marginBottom:28,position:"relative",borderRadius:24,
+        background:"linear-gradient(145deg,#111827 0%,#0d1525 40%,#0f1a2e 100%)",
+        boxShadow:"0 12px 48px rgba(0,0,0,0.5),0 0 80px rgba(6,182,212,0.04),0 1px 0 rgba(212,175,55,0.1) inset"}}>
         <CardDeco/>
-        <div style={{display:"flex",alignItems:"center",gap:14,position:"relative",zIndex:1}}>
-          <div style={{width:56,height:56,borderRadius:14,background:"rgba(62,184,240,0.15)",border:"1.5px solid rgba(62,184,240,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:48,height:48,objectFit:'contain'}}/></div>
+        {/* Ambient glow */}
+        <div style={{position:"absolute",top:-40,left:"50%",transform:"translateX(-50%)",width:200,height:200,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(6,182,212,0.08),transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:18,position:"relative",zIndex:1}}>
+          <div style={{width:68,height:68,borderRadius:20,
+            background:"linear-gradient(145deg,rgba(62,184,240,0.15),rgba(139,92,246,0.08))",
+            border:"1.5px solid rgba(62,184,240,0.25)",
+            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+            boxShadow:"0 8px 32px rgba(6,182,212,0.15),0 0 60px rgba(6,182,212,0.06)"}}>
+            <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:54,height:54,objectFit:'contain',filter:"drop-shadow(0 4px 12px rgba(6,182,212,0.2))"}}/>
+          </div>
           <div style={{flex:1}}>
             {editName
               ?<input autoFocus value={name} onChange={e=>setName(e.target.value)} onBlur={()=>{setEditName(false);upd({name});}} onKeyDown={e=>e.key==="Enter"&&setEditName(false)}
-                style={{background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:10,padding:"6px 12px",color:"#fff",fontSize:16,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",outline:"none"}}/>
-              :<div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{color:"#fff",fontSize:17,fontWeight:700}}>{name}</span>
-                <button onClick={()=>setEditName(true)} style={{background:"none",border:"none",cursor:"pointer"}}><IcEdit s={13} c="rgba(255,255,255,0.4)"/></button>
+                style={{background:"rgba(255,255,255,0.08)",backdropFilter:"blur(8px)",border:"1.5px solid rgba(62,184,240,0.4)",borderRadius:12,padding:"8px 14px",color:"#fff",fontSize:18,fontWeight:700,fontFamily:"'Sequel',system-ui,sans-serif",outline:"none",width:"100%",maxWidth:280}}/>
+              :<div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{color:"#fff",fontSize:20,fontWeight:800,letterSpacing:"-0.02em",textShadow:"0 0 30px rgba(6,182,212,0.15)"}}>{name}</span>
+                <button onClick={()=>setEditName(true)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:5,cursor:"pointer",transition:"all 0.2s",display:"flex"}}><IcEdit s={12} c="rgba(255,255,255,0.4)"/></button>
               </div>
             }
-            <p style={{color:"rgba(255,255,255,0.4)",fontSize:12,marginTop:2}}>Modelo: {bot.model || 'gpt-5.1'}</p>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginTop:6}}>
+              <span style={{color:"rgba(255,255,255,0.35)",fontSize:12,fontWeight:500}}>Modelo</span>
+              <span style={{background:"rgba(62,184,240,0.08)",border:"1px solid rgba(62,184,240,0.2)",borderRadius:8,padding:"2px 10px",color:"#3eb8f0",fontSize:11,fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>{bot.model || 'gpt-5.1'}</span>
+            </div>
           </div>
           <StatusDot active={bot.active}/>
         </div>
       </div>
 
-      {/* Desktop: horizontal tab bar */}
+      {/* ── Desktop: Premium Tab Bar ── */}
       <div className="tab-bar-desktop">
-        <div className="tab-bar-scroll" style={{background:"var(--bg-card)",border:"1px solid var(--border)",marginBottom:20,borderRadius:"var(--radius-lg)"}}>
-          {TABS.map(t=>(<button key={t.id} className={`tab-btn${(effectiveTab||"creds")===t.id?" active":""}`} onClick={()=>setTab(t.id)}>
-            <t.Icon s={14} c={(effectiveTab||"creds")===t.id?"var(--cyan-dark)":"var(--text-secondary)"}/> {t.label}
-          </button>))}
+        <div className="tab-bar-scroll" style={{background:"linear-gradient(160deg,var(--bg-card),#0e1422)",border:"1px solid rgba(55,65,81,0.4)",marginBottom:24,borderRadius:20,padding:"4px",boxShadow:"0 4px 24px rgba(0,0,0,0.2)"}}>
+          {TABS.map(t=>{
+            const isActive = (effectiveTab||"creds")===t.id;
+            return <button key={t.id} className={`tab-btn${isActive?" active":""}`} onClick={()=>setTab(t.id)}
+              style={isActive?{background:"rgba(212,175,55,0.08)",borderBottomColor:"var(--gold)",boxShadow:"0 0 20px rgba(212,175,55,0.06)"}:{}}>
+              <t.Icon s={14} c={isActive?t.color:"var(--text-secondary)"}/> {t.label}
+            </button>;
+          })}
         </div>
       </div>
 
-      {/* Mobile: vertical menu cards (shown when no tab selected) */}
+      {/* ── Mobile: Module Cards ── */}
       {isMobile && !tab && (
-        <div className="mobile-tab-menu" style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeIn 0.2s"}}>
-          {TABS.map(t=>(
+        <div className="mobile-tab-menu" style={{display:"flex",flexDirection:"column",gap:12,animation:"fadeIn 0.2s"}}>
+          {TABS.map((t,i)=>(
             <button key={t.id} onClick={()=>setTab(t.id)}
-              style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px",
-                background:"rgba(255,255,255,0.12)",backdropFilter:"blur(12px)",
-                border:"1.5px solid rgba(255,255,255,0.25)",borderRadius:16,
-                cursor:"pointer",transition:"all 0.2s",textAlign:"left",
-                fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-              <div style={{width:44,height:44,borderRadius:12,
-                background:`${t.color}15`,border:`1.5px solid ${t.color}30`,
-                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <t.Icon s={20} c={t.color}/>
+              style={{display:"flex",alignItems:"center",gap:16,padding:"18px 20px",
+                background:`linear-gradient(145deg,rgba(17,24,39,0.9),rgba(15,21,37,0.95))`,
+                backdropFilter:"blur(12px)",
+                border:`1.5px solid ${t.color}20`,borderRadius:20,
+                cursor:"pointer",transition:"all 0.3s cubic-bezier(0.4,0,0.2,1)",textAlign:"left",
+                fontFamily:"'Sequel',system-ui,sans-serif",
+                boxShadow:`0 4px 20px rgba(0,0,0,0.3),0 0 40px ${t.color}05`,
+                animation:`fadeSlideUp 0.3s ease ${i*0.05}s both`}}>
+              <div style={{width:48,height:48,borderRadius:14,
+                background:`linear-gradient(145deg,${t.color}15,${t.color}08)`,
+                border:`1.5px solid ${t.color}25`,
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+                boxShadow:`0 4px 16px ${t.color}12`}}>
+                <t.Icon s={22} c={t.color}/>
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{color:"var(--navy-deep)",fontSize:14,fontWeight:700}}>{t.label}</div>
-                <div style={{color:"var(--text-mid)",fontSize:12,marginTop:2}}>{t.desc}</div>
+                <div style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{t.label}</div>
+                <div style={{color:"var(--text-secondary)",fontSize:12,marginTop:3}}>{t.desc}</div>
               </div>
-              <IcRight s={18} c="var(--text-mid)"/>
+              <div style={{width:28,height:28,borderRadius:8,background:`${t.color}10`,border:`1px solid ${t.color}20`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <IcRight s={14} c={t.color}/>
+              </div>
             </button>
           ))}
         </div>
