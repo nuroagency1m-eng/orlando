@@ -41,11 +41,21 @@ body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',
 @keyframes ringPulse{0%,100%{opacity:0.15;transform:scale(1)}50%{opacity:0.3;transform:scale(1.05)}}
 @keyframes particleDrift{0%{transform:translateY(0) translateX(0);opacity:0.6}50%{opacity:0.2}100%{transform:translateY(-30px) translateX(10px);opacity:0}}
 @keyframes createPulse{0%,100%{border-color:rgba(212,175,55,0.15)}50%{border-color:rgba(212,175,55,0.35)}}
-.bot-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}
-.bot-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,0.5),0 0 80px rgba(6,182,212,0.06)!important;border-color:rgba(6,182,212,0.35)!important}
+.bot-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1);position:relative}
+.bot-card::before{content:'';position:absolute;inset:0;border-radius:24px;
+  background:radial-gradient(ellipse at 50% 30%,rgba(6,182,212,0.04) 0%,transparent 60%),
+  radial-gradient(ellipse at 80% 80%,rgba(139,92,246,0.03) 0%,transparent 50%);
+  pointer-events:none;z-index:0}
+.bot-card::after{content:'';position:absolute;inset:0;border-radius:24px;opacity:0.3;
+  background-image:radial-gradient(rgba(6,182,212,0.07) 1px,transparent 1px);
+  background-size:20px 20px;pointer-events:none;z-index:0}
+.bot-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 100px rgba(6,182,212,0.08)!important;border-color:rgba(6,182,212,0.4)!important}
 .bot-card:hover .bot-core-icon{animation:float 2.5s ease-in-out infinite}
 .create-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}
 .create-card:hover{transform:translateY(-4px);background:rgba(212,175,55,0.03)!important;border-color:rgba(212,175,55,0.35)!important;box-shadow:0 12px 40px rgba(0,0,0,0.3),0 0 60px rgba(212,175,55,0.04)}
+@media(max-width:768px){
+  .bot-card::after{background-size:16px 16px}
+}
 @keyframes borderShimmer{0%{border-color:rgba(212,175,55,0.15)}50%{border-color:rgba(212,175,55,0.35)}100%{border-color:rgba(212,175,55,0.15)}}
 @keyframes btnPress{0%{transform:scale(1)}50%{transform:scale(0.97)}100%{transform:scale(1)}}
 
@@ -302,11 +312,12 @@ select.inp{cursor:pointer;appearance:none}
   .wa-qr-container{width:200px;height:200px;border-radius:16px}
   .wa-btn-row{gap:8px}
 
-  /* Stat cards compact */
-  .stat-card{padding:14px}
-  .stat-value{font-size:22px}
-  .stat-label{font-size:11px}
-  .stat-icon{width:34px;height:34px;margin-bottom:8px}
+  /* Stat cards compact — always 3 cols as indicators */
+  .stats{grid-template-columns:repeat(3,1fr)!important;gap:10px}
+  .stat-card{padding:10px 8px;text-align:center}
+  .stat-value{font-size:18px}
+  .stat-label{font-size:9px;letter-spacing:0.04em}
+  .stat-icon{width:28px;height:28px;margin:0 auto 6px;border-radius:8px}
 
   /* Inputs bigger for touch */
   .inp{padding:12px 14px;font-size:14px;border-radius:12px;-webkit-appearance:none}
@@ -343,10 +354,10 @@ select.inp{cursor:pointer;appearance:none}
   .grid-3{grid-template-columns:1fr}
   .grid-2{grid-template-columns:1fr}
 
-  /* Stat cards more compact */
-  .stat-card{padding:12px}
-  .stat-value{font-size:20px}
-  .stat-icon{width:30px;height:30px;border-radius:8px;margin-bottom:6px}
+  /* Stat cards micro */
+  .stat-card{padding:8px 6px}
+  .stat-value{font-size:16px}
+  .stat-icon{width:24px;height:24px;border-radius:6px;margin-bottom:4px}
 }
 </style>
 </head>
@@ -2259,10 +2270,24 @@ function App() {
                         animation:`fadeSlideUp 0.4s ease ${i*0.1}s both`,
                         position:"relative"}}>
 
-                      {/* Ambient background glow */}
+                      {/* Ambient background layers */}
                       {bot.active && <>
-                        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(6,182,212,0.06),transparent 70%)",pointerEvents:"none"}}/>
-                        <div style={{position:"absolute",bottom:-40,right:-20,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(139,92,246,0.04),transparent 70%)",pointerEvents:"none"}}/>
+                        {/* Central light cone */}
+                        <div style={{position:"absolute",top:"15%",left:"50%",transform:"translateX(-50%)",width:260,height:260,borderRadius:"50%",
+                          background:"radial-gradient(circle,rgba(6,182,212,0.09) 0%,rgba(6,182,212,0.03) 40%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                        {/* Secondary purple glow */}
+                        <div style={{position:"absolute",bottom:-30,right:-30,width:160,height:160,borderRadius:"50%",
+                          background:"radial-gradient(circle,rgba(139,92,246,0.05),transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                        {/* Gold accent */}
+                        <div style={{position:"absolute",top:-20,left:-20,width:100,height:100,borderRadius:"50%",
+                          background:"radial-gradient(circle,rgba(212,175,55,0.03),transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                        {/* Floating particles */}
+                        {[{t:"20%",l:"15%",d:"3s",s:3},{t:"70%",l:"80%",d:"4s",s:2},{t:"40%",l:"85%",d:"5s",s:2.5},{t:"75%",l:"20%",d:"3.5s",s:2}].map((p,pi)=>(
+                          <div key={pi} style={{position:"absolute",top:p.t,left:p.l,width:p.s,height:p.s,borderRadius:"50%",
+                            background:"rgba(6,182,212,0.4)",
+                            animation:`particleDrift ${p.d} ease-in-out infinite`,animationDelay:`${pi*0.8}s`,
+                            pointerEvents:"none",zIndex:0}}/>
+                        ))}
                       </>}
 
                       {/* ── Core Section: orbital system ── */}
@@ -2270,10 +2295,15 @@ function App() {
 
                         {/* Orbital container */}
                         <div style={{position:"relative",width:150,height:150,marginBottom:20}}>
-                          {/* Orbital ring */}
-                          {bot.active && <div style={{position:"absolute",inset:0,borderRadius:"50%",
-                            border:"1px solid rgba(6,182,212,0.08)",
-                            animation:"ringPulse 4s ease-in-out infinite"}}/>}
+                          {/* Orbital rings */}
+                          {bot.active && <>
+                            <div style={{position:"absolute",inset:-4,borderRadius:"50%",
+                              border:"1px solid rgba(6,182,212,0.05)",
+                              animation:"ringPulse 5s ease-in-out infinite"}}/>
+                            <div style={{position:"absolute",inset:0,borderRadius:"50%",
+                              border:"1px solid rgba(6,182,212,0.1)",
+                              animation:"ringPulse 4s ease-in-out infinite"}}/>
+                          </>}
 
                           {/* Orbiting nodes */}
                           {bot.active && orbs.map((o,idx)=>(
