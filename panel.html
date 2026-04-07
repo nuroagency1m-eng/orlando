@@ -209,6 +209,9 @@ select.inp{cursor:pointer;appearance:none}
 .table-row:last-child{border-bottom:none}
 .table-row:hover{background:rgba(212,175,55,0.03);padding-left:24px}
 
+/* BOT GRID CARDS — hover via CSS (inline hover is not possible in React) */
+/* We rely on inline transition styles; this adds a general pointer cursor */
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(212,175,55,0.25);border-radius:4px}
@@ -2124,8 +2127,7 @@ function App() {
               onClick={()=>{
                 if (item.id==='profile') { setShowProfile(true); setSidebarOpen(false); }
                 else if (item.id==='bot') {
-                  if (bots.length>0) selectBot(bots[0]);
-                  else { setPage('bot'); setSidebarOpen(false); }
+                  setSelectedBot(null); setPage('bot'); setSidebarOpen(false);
                 }
                 else navigate(item.id);
               }}>
@@ -2198,17 +2200,118 @@ function App() {
           )}
           {page==='bot' && !selectedBot && (
             <div style={{animation:"fadeIn 0.3s ease"}}>
-              <div className="card">
-                <div className="card-body" style={{textAlign:"center",padding:60}}>
-                  <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:110,height:110,objectFit:'contain',marginBottom:16}}/>
-                  <p style={{color:"var(--text-secondary)",fontSize:15,marginBottom:20}}>No tienes agentes configurados aun.</p>
+              {/* Stats row */}
+              <div className="stats" style={{marginBottom:24}}>
+                {[
+                  {label:"Agentes",value:bots.length,color:"var(--cyan)",bg:"rgba(6,182,212,0.08)",Icon:IcMsg},
+                  {label:"Productos",value:bots.reduce((a,b)=>a+(b.products||[]).length,0),color:"var(--success)",bg:"rgba(34,197,94,0.08)",Icon:IcBox},
+                  {label:"Activos",value:bots.filter(b=>b.active).length,color:"var(--gold)",bg:"rgba(212,175,55,0.08)",Icon:IcZap},
+                ].map(s=>(
+                  <div key={s.label} className="stat-card">
+                    <div className="stat-icon" style={{background:s.bg}}><s.Icon s={20} c={s.color}/></div>
+                    <div className="stat-value" style={{color:s.color}}>{s.value}</div>
+                    <div className="stat-label">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {bots.length === 0 ? (
+                <div className="card">
+                  <div className="card-body" style={{textAlign:"center",padding:60}}>
+                    <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:110,height:110,objectFit:'contain',marginBottom:16,filter:"drop-shadow(0 4px 20px rgba(6,182,212,0.15))"}}/>
+                    <p style={{color:"var(--text-secondary)",fontSize:15,marginBottom:20}}>No tienes agentes configurados aun.</p>
+                    {bots.length < (user?.max_bots||1) && (
+                      <button className="btn-cyan" onClick={createBot} style={{margin:"0 auto",padding:"12px 28px"}}>
+                        <IcPlus s={16} c="#fff"/> Crear mi primer agente
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
+                  {bots.map((bot,i) => (
+                    <div key={bot.id} onClick={()=>selectBot(bot)}
+                      style={{background:"linear-gradient(160deg,#111827 0%,#0d1525 100%)",
+                        border:bot.active?"1.5px solid rgba(6,182,212,0.2)":"1.5px solid rgba(55,65,81,0.4)",
+                        borderRadius:24,padding:0,cursor:"pointer",overflow:"hidden",
+                        transition:"all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                        boxShadow:bot.active?"0 8px 32px rgba(0,0,0,0.4),0 0 60px rgba(6,182,212,0.04)":"0 4px 16px rgba(0,0,0,0.3)",
+                        animation:`fadeSlideUp 0.4s ease ${i*0.08}s both`,
+                        position:"relative"}}>
+                      {/* Top glow */}
+                      {bot.active && <div style={{position:"absolute",top:-40,left:"50%",transform:"translateX(-50%)",width:160,height:100,borderRadius:"50%",background:"radial-gradient(circle,rgba(6,182,212,0.08),transparent 70%)",pointerEvents:"none"}}/>}
+                      {/* Header */}
+                      <div style={{padding:"24px 24px 16px",display:"flex",alignItems:"center",gap:16,position:"relative",zIndex:1}}>
+                        <div style={{width:56,height:56,borderRadius:16,
+                          background:bot.active?"linear-gradient(145deg,rgba(6,182,212,0.12),rgba(139,92,246,0.06))":"rgba(55,65,81,0.2)",
+                          border:bot.active?"1.5px solid rgba(6,182,212,0.2)":"1.5px solid rgba(55,65,81,0.3)",
+                          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+                          boxShadow:bot.active?"0 4px 20px rgba(6,182,212,0.12)":"none"}}>
+                          <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:44,height:44,objectFit:'contain',opacity:bot.active?1:0.5}}/>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:16,fontWeight:800,color:"var(--text)",marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bot.name}</div>
+                          <span style={{background:bot.active?"rgba(6,182,212,0.08)":"rgba(55,65,81,0.2)",
+                            border:bot.active?"1px solid rgba(6,182,212,0.2)":"1px solid rgba(55,65,81,0.3)",
+                            borderRadius:8,padding:"2px 10px",fontSize:11,fontWeight:700,
+                            color:bot.active?"#06b6d4":"var(--text-light)",
+                            fontFamily:"'JetBrains Mono',monospace"}}>
+                            {bot.model||'gpt-5.1'}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Indicators */}
+                      <div style={{padding:"0 24px 16px",display:"flex",gap:8,flexWrap:"wrap",position:"relative",zIndex:1}}>
+                        {[
+                          {ok:bot.active,label:"Activo",c:"#22c55e"},
+                          {ok:bot.credentials?.openaiKey,label:"API Key",c:"#3eb8f0"},
+                          {ok:bot.whatsapp?.status==='connected'||bot.wa_status==='connected',label:"WhatsApp",c:"#8b5cf6"},
+                        ].map(ind=>(
+                          <span key={ind.label} style={{display:"inline-flex",alignItems:"center",gap:5,
+                            padding:"3px 10px",borderRadius:8,fontSize:10,fontWeight:700,letterSpacing:"0.04em",
+                            background:ind.ok?`${ind.c}12`:"rgba(55,65,81,0.15)",
+                            color:ind.ok?ind.c:"var(--text-light)",
+                            border:`1px solid ${ind.ok?ind.c+'25':"rgba(55,65,81,0.25)"}`}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:ind.ok?ind.c:"var(--text-light)",
+                              boxShadow:ind.ok?`0 0 8px ${ind.c}60`:"none"}}/>
+                            {ind.label}
+                          </span>
+                        ))}
+                      </div>
+                      {/* Footer */}
+                      <div style={{padding:"12px 24px 16px",borderTop:"1px solid rgba(55,65,81,0.25)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1}}>
+                        <span style={{fontSize:12,color:"var(--text-secondary)",fontWeight:500}}>{(bot.products||[]).length} producto(s)</span>
+                        <span style={{fontSize:12,fontWeight:700,color:"var(--cyan)",display:"flex",alignItems:"center",gap:4}}>
+                          Configurar <IcRight s={14} c="var(--cyan)"/>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Create new agent card */}
                   {bots.length < (user?.max_bots||1) && (
-                    <button className="btn-cyan" onClick={createBot} style={{margin:"0 auto",padding:"12px 28px"}}>
-                      <IcPlus s={16} c="#fff"/> Crear mi primer agente
-                    </button>
+                    <div onClick={createBot}
+                      style={{background:"transparent",
+                        border:"2px dashed rgba(212,175,55,0.2)",
+                        borderRadius:24,padding:0,cursor:"pointer",overflow:"hidden",
+                        transition:"all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        minHeight:200,
+                        animation:`fadeSlideUp 0.4s ease ${bots.length*0.08}s both`}}>
+                      <div style={{textAlign:"center",padding:32}}>
+                        <div style={{width:56,height:56,borderRadius:16,
+                          background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.15)",
+                          display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",
+                          transition:"all 0.3s"}}>
+                          <IcPlus s={24} c="var(--gold)"/>
+                        </div>
+                        <div style={{fontSize:14,fontWeight:700,color:"var(--gold)",marginBottom:4}}>Nuevo Agente</div>
+                        <div style={{fontSize:12,color:"var(--text-light)"}}>Crear agente de ventas IA</div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           )}
           {page==='sales' && <PageVentas/>}
@@ -2228,7 +2331,7 @@ function App() {
               <button key={item.id} className={`bottom-nav-item${page===item.id?' active':''}`}
                 onClick={()=>{
                   if (item.id==='profile') setShowProfile(true);
-                  else if (item.id==='bot') { if (bots.length>0) selectBot(bots[0]); else setPage('bot'); }
+                  else if (item.id==='bot') { setSelectedBot(null); setPage('bot'); }
                   else navigate(item.id);
                 }}>
                 <item.Icon s={20} c={page===item.id?"var(--gold)":"var(--text-light)"}/>
