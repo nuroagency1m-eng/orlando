@@ -55,9 +55,9 @@ async function requireAuth(req, res, next) {
   }
   req.user = user;
 
-  // Verificar recompra vigente (excepto admin y rutas de recompras/perfil/auth)
+  // Verificar recompra vigente (excepto admin y rutas necesarias para cargar el panel)
   const path = req.originalUrl || req.url;
-  const exemptPaths = ['/api/recompras', '/api/auth/', '/api/user/profile'];
+  const exemptPaths = ['/api/recompras', '/api/auth/', '/api/user/profile', '/api/bots', '/api/sales'];
   const isExempt = user.role === 'admin' || exemptPaths.some(p => path.startsWith(p));
   if (!isExempt) {
     const { Recompras } = require('./database');
