@@ -33,6 +33,19 @@ body{font-family:'Sequel',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',
 @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:0.3}}
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(34,197,94,0.3),0 0 60px rgba(34,197,94,0.08)}50%{box-shadow:0 0 30px rgba(34,197,94,0.5),0 0 80px rgba(34,197,94,0.12)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes orbit1{0%{transform:rotate(0deg) translateX(52px) rotate(0deg)}100%{transform:rotate(360deg) translateX(52px) rotate(-360deg)}}
+@keyframes orbit2{0%{transform:rotate(120deg) translateX(52px) rotate(-120deg)}100%{transform:rotate(480deg) translateX(52px) rotate(-480deg)}}
+@keyframes orbit3{0%{transform:rotate(240deg) translateX(52px) rotate(-240deg)}100%{transform:rotate(600deg) translateX(52px) rotate(-600deg)}}
+@keyframes coreGlow{0%,100%{box-shadow:0 0 20px rgba(6,182,212,0.2),0 0 60px rgba(6,182,212,0.05)}50%{box-shadow:0 0 30px rgba(6,182,212,0.35),0 0 80px rgba(6,182,212,0.1)}}
+@keyframes ringPulse{0%,100%{opacity:0.15;transform:scale(1)}50%{opacity:0.3;transform:scale(1.05)}}
+@keyframes particleDrift{0%{transform:translateY(0) translateX(0);opacity:0.6}50%{opacity:0.2}100%{transform:translateY(-30px) translateX(10px);opacity:0}}
+@keyframes createPulse{0%,100%{border-color:rgba(212,175,55,0.15)}50%{border-color:rgba(212,175,55,0.35)}}
+.bot-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}
+.bot-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,0.5),0 0 80px rgba(6,182,212,0.06)!important;border-color:rgba(6,182,212,0.35)!important}
+.bot-card:hover .bot-core-icon{animation:float 2.5s ease-in-out infinite}
+.create-card{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}
+.create-card:hover{transform:translateY(-4px);background:rgba(212,175,55,0.03)!important;border-color:rgba(212,175,55,0.35)!important;box-shadow:0 12px 40px rgba(0,0,0,0.3),0 0 60px rgba(212,175,55,0.04)}
 @keyframes borderShimmer{0%{border-color:rgba(212,175,55,0.15)}50%{border-color:rgba(212,175,55,0.35)}100%{border-color:rgba(212,175,55,0.15)}}
 @keyframes btnPress{0%{transform:scale(1)}50%{transform:scale(0.97)}100%{transform:scale(1)}}
 
@@ -2228,85 +2241,130 @@ function App() {
                   </div>
                 </div>
               ) : (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
-                  {bots.map((bot,i) => (
-                    <div key={bot.id} onClick={()=>selectBot(bot)}
-                      style={{background:"linear-gradient(160deg,#111827 0%,#0d1525 100%)",
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:24}}>
+                  {bots.map((bot,i) => {
+                    const hasKey = !!bot.credentials?.openaiKey;
+                    const hasWa = bot.whatsapp?.status==='connected'||bot.wa_status==='connected';
+                    const orbs = [
+                      {ok:bot.active,label:"Activo",c:"#22c55e",anim:"orbit1",dur:"18s"},
+                      {ok:hasKey,label:"API",c:"#3eb8f0",anim:"orbit2",dur:"22s"},
+                      {ok:hasWa,label:"WA",c:"#8b5cf6",anim:"orbit3",dur:"26s"},
+                    ];
+                    return (
+                    <div key={bot.id} className="bot-card" onClick={()=>selectBot(bot)}
+                      style={{background:"linear-gradient(160deg,#111827 0%,#0d1525 50%,#0f1a2e 100%)",
                         border:bot.active?"1.5px solid rgba(6,182,212,0.2)":"1.5px solid rgba(55,65,81,0.4)",
-                        borderRadius:24,padding:0,cursor:"pointer",overflow:"hidden",
-                        transition:"all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                        borderRadius:24,cursor:"pointer",overflow:"hidden",
                         boxShadow:bot.active?"0 8px 32px rgba(0,0,0,0.4),0 0 60px rgba(6,182,212,0.04)":"0 4px 16px rgba(0,0,0,0.3)",
-                        animation:`fadeSlideUp 0.4s ease ${i*0.08}s both`,
+                        animation:`fadeSlideUp 0.4s ease ${i*0.1}s both`,
                         position:"relative"}}>
-                      {/* Top glow */}
-                      {bot.active && <div style={{position:"absolute",top:-40,left:"50%",transform:"translateX(-50%)",width:160,height:100,borderRadius:"50%",background:"radial-gradient(circle,rgba(6,182,212,0.08),transparent 70%)",pointerEvents:"none"}}/>}
-                      {/* Header */}
-                      <div style={{padding:"24px 24px 16px",display:"flex",alignItems:"center",gap:16,position:"relative",zIndex:1}}>
-                        <div style={{width:56,height:56,borderRadius:16,
-                          background:bot.active?"linear-gradient(145deg,rgba(6,182,212,0.12),rgba(139,92,246,0.06))":"rgba(55,65,81,0.2)",
-                          border:bot.active?"1.5px solid rgba(6,182,212,0.2)":"1.5px solid rgba(55,65,81,0.3)",
-                          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
-                          boxShadow:bot.active?"0 4px 20px rgba(6,182,212,0.12)":"none"}}>
-                          <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:44,height:44,objectFit:'contain',opacity:bot.active?1:0.5}}/>
+
+                      {/* Ambient background glow */}
+                      {bot.active && <>
+                        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(6,182,212,0.06),transparent 70%)",pointerEvents:"none"}}/>
+                        <div style={{position:"absolute",bottom:-40,right:-20,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(139,92,246,0.04),transparent 70%)",pointerEvents:"none"}}/>
+                      </>}
+
+                      {/* ── Core Section: orbital system ── */}
+                      <div style={{padding:"32px 24px 20px",display:"flex",flexDirection:"column",alignItems:"center",position:"relative",zIndex:1}}>
+
+                        {/* Orbital container */}
+                        <div style={{position:"relative",width:130,height:130,marginBottom:20}}>
+                          {/* Orbital ring */}
+                          {bot.active && <div style={{position:"absolute",inset:0,borderRadius:"50%",
+                            border:"1px solid rgba(6,182,212,0.08)",
+                            animation:"ringPulse 4s ease-in-out infinite"}}/>}
+
+                          {/* Orbiting nodes */}
+                          {bot.active && orbs.map((o,idx)=>(
+                            <div key={o.label} style={{position:"absolute",top:"50%",left:"50%",width:0,height:0,
+                              animation:`${o.anim} ${o.dur} linear infinite`}}>
+                              <div style={{width:28,height:28,borderRadius:8,marginLeft:-14,marginTop:-14,
+                                background:o.ok?`linear-gradient(145deg,${o.c}25,${o.c}10)`:"rgba(55,65,81,0.3)",
+                                border:`1.5px solid ${o.ok?o.c+'40':"rgba(55,65,81,0.4)"}`,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                boxShadow:o.ok?`0 0 12px ${o.c}30`:"none",
+                                fontSize:8,fontWeight:800,color:o.ok?o.c:"var(--text-light)",letterSpacing:"0.05em"}}>
+                                {o.label}
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Core icon */}
+                          <div className="bot-core-icon" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+                            width:72,height:72,borderRadius:20,
+                            background:bot.active?"linear-gradient(145deg,rgba(6,182,212,0.12),rgba(139,92,246,0.06))":"rgba(55,65,81,0.15)",
+                            border:bot.active?"1.5px solid rgba(6,182,212,0.25)":"1.5px solid rgba(55,65,81,0.3)",
+                            display:"flex",alignItems:"center",justifyContent:"center",
+                            animation:bot.active?"coreGlow 3s ease-in-out infinite":"none"}}>
+                            <img src="/IMAGEN/logo%20of%20.png" alt="Bot" style={{width:52,height:52,objectFit:'contain',
+                              opacity:bot.active?1:0.4,
+                              filter:bot.active?"drop-shadow(0 2px 12px rgba(6,182,212,0.2))":"none"}}/>
+                          </div>
                         </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:16,fontWeight:800,color:"var(--text)",marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{bot.name}</div>
-                          <span style={{background:bot.active?"rgba(6,182,212,0.08)":"rgba(55,65,81,0.2)",
-                            border:bot.active?"1px solid rgba(6,182,212,0.2)":"1px solid rgba(55,65,81,0.3)",
-                            borderRadius:8,padding:"2px 10px",fontSize:11,fontWeight:700,
-                            color:bot.active?"#06b6d4":"var(--text-light)",
-                            fontFamily:"'JetBrains Mono',monospace"}}>
-                            {bot.model||'gpt-5.1'}
-                          </span>
-                        </div>
+
+                        {/* Bot name + model */}
+                        <div style={{fontSize:18,fontWeight:800,color:"var(--text)",marginBottom:6,textAlign:"center",
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",
+                          textShadow:bot.active?"0 0 20px rgba(6,182,212,0.1)":"none"}}>{bot.name}</div>
+                        <span style={{background:bot.active?"rgba(6,182,212,0.08)":"rgba(55,65,81,0.2)",
+                          border:bot.active?"1px solid rgba(6,182,212,0.2)":"1px solid rgba(55,65,81,0.3)",
+                          borderRadius:8,padding:"3px 12px",fontSize:11,fontWeight:700,
+                          color:bot.active?"#06b6d4":"var(--text-light)",
+                          fontFamily:"'JetBrains Mono',monospace"}}>{bot.model||'gpt-5.1'}</span>
                       </div>
-                      {/* Indicators */}
-                      <div style={{padding:"0 24px 16px",display:"flex",gap:8,flexWrap:"wrap",position:"relative",zIndex:1}}>
-                        {[
-                          {ok:bot.active,label:"Activo",c:"#22c55e"},
-                          {ok:bot.credentials?.openaiKey,label:"API Key",c:"#3eb8f0"},
-                          {ok:bot.whatsapp?.status==='connected'||bot.wa_status==='connected',label:"WhatsApp",c:"#8b5cf6"},
-                        ].map(ind=>(
+
+                      {/* Indicators row */}
+                      <div style={{padding:"0 24px 16px",display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap",position:"relative",zIndex:1}}>
+                        {orbs.map(ind=>(
                           <span key={ind.label} style={{display:"inline-flex",alignItems:"center",gap:5,
-                            padding:"3px 10px",borderRadius:8,fontSize:10,fontWeight:700,letterSpacing:"0.04em",
-                            background:ind.ok?`${ind.c}12`:"rgba(55,65,81,0.15)",
+                            padding:"4px 12px",borderRadius:10,fontSize:10,fontWeight:700,letterSpacing:"0.04em",
+                            background:ind.ok?`${ind.c}10`:"rgba(55,65,81,0.12)",
                             color:ind.ok?ind.c:"var(--text-light)",
-                            border:`1px solid ${ind.ok?ind.c+'25':"rgba(55,65,81,0.25)"}`}}>
+                            border:`1px solid ${ind.ok?ind.c+'20':"rgba(55,65,81,0.2)"}`}}>
                             <span style={{width:6,height:6,borderRadius:"50%",background:ind.ok?ind.c:"var(--text-light)",
-                              boxShadow:ind.ok?`0 0 8px ${ind.c}60`:"none"}}/>
-                            {ind.label}
+                              boxShadow:ind.ok?`0 0 8px ${ind.c}50`:"none",
+                              animation:ind.ok?"dotBlink 2s ease-in-out infinite":"none"}}/>
+                            {ind.label==="WA"?"WhatsApp":ind.label==="API"?"API Key":ind.label}
                           </span>
                         ))}
                       </div>
+
                       {/* Footer */}
-                      <div style={{padding:"12px 24px 16px",borderTop:"1px solid rgba(55,65,81,0.25)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1}}>
+                      <div style={{padding:"14px 24px",borderTop:"1px solid rgba(55,65,81,0.2)",
+                        display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1,
+                        background:"rgba(0,0,0,0.1)"}}>
                         <span style={{fontSize:12,color:"var(--text-secondary)",fontWeight:500}}>{(bot.products||[]).length} producto(s)</span>
-                        <span style={{fontSize:12,fontWeight:700,color:"var(--cyan)",display:"flex",alignItems:"center",gap:4}}>
-                          Configurar <IcRight s={14} c="var(--cyan)"/>
+                        <span style={{fontSize:12,fontWeight:700,color:"var(--gold)",display:"flex",alignItems:"center",gap:5,
+                          background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.15)",
+                          borderRadius:10,padding:"5px 14px"}}>
+                          Configurar <IcRight s={13} c="var(--gold)"/>
                         </span>
                       </div>
                     </div>
-                  ))}
+                  );})}
 
-                  {/* Create new agent card */}
+                  {/* ── Create new agent card ── */}
                   {bots.length < (user?.max_bots||1) && (
-                    <div onClick={createBot}
-                      style={{background:"transparent",
+                    <div className="create-card" onClick={createBot}
+                      style={{background:"rgba(17,24,39,0.3)",
                         border:"2px dashed rgba(212,175,55,0.2)",
-                        borderRadius:24,padding:0,cursor:"pointer",overflow:"hidden",
-                        transition:"all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                        borderRadius:24,cursor:"pointer",overflow:"hidden",
                         display:"flex",alignItems:"center",justifyContent:"center",
-                        minHeight:200,
-                        animation:`fadeSlideUp 0.4s ease ${bots.length*0.08}s both`}}>
-                      <div style={{textAlign:"center",padding:32}}>
-                        <div style={{width:56,height:56,borderRadius:16,
-                          background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.15)",
-                          display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",
-                          transition:"all 0.3s"}}>
-                          <IcPlus s={24} c="var(--gold)"/>
+                        minHeight:280,position:"relative",
+                        animation:`fadeSlideUp 0.4s ease ${bots.length*0.1}s both,createPulse 3s ease-in-out infinite`}}>
+                      {/* Ambient glow */}
+                      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(212,175,55,0.05),transparent 70%)",pointerEvents:"none"}}/>
+                      <div style={{textAlign:"center",padding:32,position:"relative",zIndex:1}}>
+                        <div style={{width:64,height:64,borderRadius:18,
+                          background:"linear-gradient(145deg,rgba(212,175,55,0.08),rgba(212,175,55,0.03))",
+                          border:"1.5px solid rgba(212,175,55,0.2)",
+                          display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",
+                          boxShadow:"0 4px 20px rgba(212,175,55,0.08)"}}>
+                          <IcPlus s={26} c="var(--gold)"/>
                         </div>
-                        <div style={{fontSize:14,fontWeight:700,color:"var(--gold)",marginBottom:4}}>Nuevo Agente</div>
-                        <div style={{fontSize:12,color:"var(--text-light)"}}>Crear agente de ventas IA</div>
+                        <div style={{fontSize:15,fontWeight:800,color:"var(--gold)",marginBottom:6}}>Nuevo Agente</div>
+                        <div style={{fontSize:12,color:"var(--text-light)",lineHeight:1.5}}>Crear agente de ventas IA</div>
                       </div>
                     </div>
                   )}
