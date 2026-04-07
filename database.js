@@ -434,9 +434,14 @@ const Products = {
 // ══════════════════════════════════════════════════════════════════════════════
 const Conversations = {
   async upsert(botId, phone, pushName, jidSuffix) {
-    const { rows } = await pool.query('SELECT id FROM conversations WHERE bot_id = $1 AND phone = $2', [botId, phone]);
+    const { rows } = await pool.query('SELECT id, status FROM conversations WHERE bot_id = $1 AND phone = $2', [botId, phone]);
     const existing = rows[0];
     if (existing) {
+      // No reactivar conversaciones cerradas por venta confirmada
+      if (existing.status === 'sold') {
+        await pool.query("UPDATE conversations SET push_name = $1, last_message_at = NOW() WHERE id = $2", [pushName, existing.id]);
+        return existing.id;
+      }
       if (jidSuffix) {
         await pool.query("UPDATE conversations SET push_name = $1, last_message_at = NOW(), status = 'active', jid_suffix = $2 WHERE id = $3", [pushName, jidSuffix, existing.id]);
       } else {
@@ -458,6 +463,10 @@ const Conversations = {
 
   async incrementFollowUp(botId, phone) {
     await pool.query("UPDATE conversations SET follow_up_count = follow_up_count + 1 WHERE bot_id = $1 AND phone = $2", [botId, phone]);
+  },
+
+  async closeAsSold(botId, phone) {
+    await pool.query("UPDATE conversations SET status = 'sold', follow_up_count = 2 WHERE bot_id = $1 AND phone = $2", [botId, phone]);
   },
 
   async updateLocation(botId, phone, latitude, longitude) {

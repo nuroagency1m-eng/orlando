@@ -730,6 +730,13 @@ async function startSession(botId, forceNew = false) {
         continue;
       }
 
+      // Check if conversation was closed by a confirmed sale
+      const convCheck = await Conversations.findByBotAndPhone(botId, senderPhone);
+      if (convCheck && convCheck.status === 'sold') {
+        console.log(`[Bot ${botId}] [FLUJO] 🔒 Venta confirmada — no responde a ${pushName} (+${senderPhone})`);
+        continue;
+      }
+
       console.log(`[Bot ${botId}] [FLUJO] ━━━ INICIO RESPUESTA a ${pushName} (+${senderPhone}) ━━━`);
       console.log(`[Bot ${botId}] [FLUJO] 📩 Mensaje recibido: "${textToProcess.substring(0, 100)}"`);
 
@@ -949,6 +956,9 @@ async function startSession(botId, forceNew = false) {
               bot_name: botDB?.name || '',
             });
             console.log(`[Bot ${botId}] [VENTA] ✅ Venta registrada: ${reportClientName} - ${reportProduct || 'producto'}`);
+            // Cerrar conversacion — el bot deja de responder a este cliente
+            await Conversations.closeAsSold(botId, senderPhone);
+            console.log(`[Bot ${botId}] [VENTA] 🔒 Conversacion cerrada por venta confirmada — ${pushName} (+${senderPhone})`);
           } catch(e) { console.error(`[Bot ${botId}] [VENTA] Error registrando:`, e.message); }
         }
 
